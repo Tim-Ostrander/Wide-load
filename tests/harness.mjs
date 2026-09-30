@@ -17,7 +17,10 @@ const CDN = [
   [/cdn\.jsdelivr\.net\/npm\/cannon-es@[^/]+\/(.*)$/, (m) => path.join(deps, 'cannon-es', m[1])],
 ];
 
-export async function startServer(port = 8765) {
+// WL_PORT lets two test scripts run side by side without sharing a server
+const PORT = Number(process.env.WL_PORT || 8765);
+
+export async function startServer(port = PORT) {
   try { await fetch(`http://localhost:${port}/`); return { kill() {} }; } catch {}
   const srv = spawn(process.execPath, [path.join(repo, 'tools/devserver.mjs'), repo, String(port)], { stdio: ['ignore', 'pipe', 'inherit'] });
   await new Promise((r) => srv.stdout.once('data', r));
@@ -43,7 +46,7 @@ export async function launch({ width = Number(process.env.W || 1280), height = N
   return { browser, context };
 }
 
-export async function openPage(context, { port = 8765, init, fakeRoom } = {}) {
+export async function openPage(context, { port = PORT, init, fakeRoom } = {}) {
   const page = await context.newPage();
   const logs = [];
   page.on('console', (m) => logs.push(`[${m.type()}] ${m.text()}`));

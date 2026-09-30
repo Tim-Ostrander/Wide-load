@@ -9,9 +9,8 @@ import { Rig, SEATS, TRAILER, defaultRigState } from './rig/rig.js';
 import { Input } from './input.js';
 import { CameraRig } from './camera.js';
 import { Items, INITIAL_ITEMS } from './items.js';
-import { LocalPlayer, Avatar } from './player.js';
+import { LocalPlayer, Avatar, lookOf, PACK_SIZE } from './player.js';
 import { Fx } from './fx.js';
-import { InkPass } from './render/post.js';
 import { clamp } from './util/rng.js';
 
 export const STEP = 1 / 60;
@@ -39,7 +38,6 @@ export class Game {
     renderer.toneMappingExposure = 1.0;
     view.appendChild(renderer.domElement);
     this.renderer = renderer;
-    this.ink = new InkPass(renderer);
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(60, view.clientWidth / view.clientHeight, 0.1, 3000);
     this.physics = createPhysics();
@@ -54,7 +52,7 @@ export class Game {
     this.startIndex = r.places.depot + 22;
     this.checkpoints = this._checkpoints();
     this.itemDefs = INITIAL_ITEMS(this.structures, r);
-    this.player = new LocalPlayer(this, opts.color ?? 0, opts.name || 'You');
+    this.player = new LocalPlayer(this, opts.color ?? 0, opts.name || 'You', opts.look);
     this.remotes = new Map();
     this.time = 0;
     this.acc = 0;
@@ -99,7 +97,7 @@ export class Game {
     this.lastRo = null;
     this.sessionAt = performance.now();
     this._hostLostShown = false;
-    if (profile) this.player.setLook(profile.color, profile.name);
+    if (profile) this.player.setLook(profile.color, profile.name, profile.look);
     this.resetJob(true);
   }
 
@@ -158,6 +156,7 @@ export class Game {
     this.spawnPlayer();
     this.player.held = null;
     this.player.action = null;
+    this.player.resetSmokes();
     this.hold = null;
     this.releaseAnim = null;
     this.prev = {};
@@ -198,11 +197,10 @@ export class Game {
     rig.placeOnRoad(this.startIndex);
   }
 
-  /** Fast mode drops the outline pass and shadows and renders at 1x. */
+  /** Fast mode drops shadows and renders at 1x. */
   setGraphics(fast) {
     this.fastGfx = fast;
     const r = this.renderer;
-    this.ink.enabled = !fast && r.capabilities.isWebGL2;
     r.setPixelRatio(fast ? 1 : Math.min(devicePixelRatio, 2));
     if (r.shadowMap.enabled === fast) {
       r.shadowMap.enabled = !fast;
@@ -217,7 +215,6 @@ export class Game {
   resize() {
     const w = this.view.clientWidth, h = this.view.clientHeight;
     this.renderer.setSize(w, h);
-    this.ink.setSize();
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
   }
@@ -671,8 +668,10 @@ export class Game {
     rig.updateVisuals(dt, this.time);
     this._releaseAnimation(dt);
     this.player.lifting = this.lifting;
-    this.player.avatar.setVisible(this.mode === 'play');
-    this.player.updateVisual(dt, this.time);
+    if (this.mode === 'play') {
+      this.player.avatar.setVisible(true);
+      this.player.updateVisual(dt, this.time);
+    } else this._introPose(dt);
     this._updateRemotes(dt);
     this.items.update(dt, (peer) => (peer === s.me ? this.player.avatar : this.remotes.get(peer)?.avatar));
     this.fx.update(dt);
@@ -682,11 +681,15 @@ export class Game {
     const focus = new THREE.Vector3();
     let heading;
     if (this.mode !== 'play') {
-      rig.center(focus);
-      focus.y += 3;
-      this.cam.yaw = yawOf(rig.truck.quaternion) - Math.PI / 2 + Math.sin(this.time * 0.07) * 0.9;
-      this.cam.pitch = 0.2;
-      this.cam.setMode('rig', 24);
+      // title shot: your crew member having a smoke by the cab, framed right of the menu
+      const q = rig.truck.quaternion;
+      const d = new THREE.Vector3(1, 0, 0).applyQuaternion(q).addScaledVector(new THREE.Vector3(0, 0, 1).applyQuaternion(q), 0.9);
+      this.cam.yaw = Math.atan2(d.x, d.z) + Math.sin(this.time * 0.1) * 0.3;
+      this.cam.pitch = 0.08;
+      this.cam.setMode('intro', 7.5);
+      focus.copy(this.player.avatar.group.position);
+      focus.y += 1.3;
+      focus.addScaledVector(new THREE.Vector3(Math.cos(this.cam.yaw), 0, -Math.sin(this.cam.yaw)), -2.8);
     } else if (this.player.seat) {
       rig.center(focus);
       focus.y += 3.2;
@@ -715,7 +718,20 @@ export class Game {
     if (window.__WL_DEBUG && this.onDebugFrame) this.onDebugFrame(dt);
     // tests can skip frames to run the simulation faster than the renderer
     this._frameNo = (this._frameNo || 0) + 1;
-    if (!this.renderEvery || this._frameNo % this.renderEvery === 0) this.ink.render(this.scene, this.camera);
+    if (!this.renderEvery || this._frameNo % this.renderEvery === 0) this.renderer.render(this.scene, this.camera);
+  }
+
+  /** Title screen: your crew member has a smoke by the cab, so look changes show up live. */
+  _introPose(dt) {
+    const av = this.player.avatar;
+    av.setVisible(true);
+    const p = this.rig.toWorld('truck', [2.4, 0, 2.2]);
+    p.y = this.world.heightAt(p.x, p.z);
+    av.group.position.copy(p);
+    av.yaw = Math.atan2(this.camera.position.x - p.x, this.camera.position.z - p.z);
+    Object.assign(av.anim, { speed: 0, grounded: true, seated: false, carrying: null, action: null });
+    av.setSmoking(true, true);
+    av.update(dt, this.time);
   }
 
   _syncLocalSeat() {
@@ -760,6 +776,8 @@ export class Game {
     s.set({
       n: this.opts.name || 'Crew',
       c: this.opts.color ?? 0,
+      lk: this._lookCode(),
+      sm: p.smoking ? 1 : 0,
       p: pos,
       on,
       r: Math.round(p.yaw * 100) / 100,
@@ -791,8 +809,18 @@ export class Game {
       if (!pr || !pr.p) continue;
       seen.add(peer);
       let rem = this.remotes.get(peer);
+      const lk = Array.isArray(pr.lk) ? pr.lk : [];
+      const key = `${pr.c}|${pr.n}|${lk[0]}|${lk[1]}|${lk[2]}`;
+      if (rem && rem.key !== key) {
+        // they changed their look: rebuild the avatar in place
+        const pos = rem.avatar.group.position.clone();
+        rem.avatar.dispose();
+        rem.avatar = this._remoteAvatar(pr, lk);
+        rem.avatar.group.position.copy(pos);
+        rem.key = key;
+      }
       if (!rem) {
-        rem = { avatar: new Avatar(this.scene, pr.c ?? 1, String(pr.n || 'Crew').slice(0, 18)), pos: new THREE.Vector3(), init: false };
+        rem = { avatar: this._remoteAvatar(pr, lk), pos: new THREE.Vector3(), init: false, key };
         this.remotes.set(peer, rem);
       }
       const target = this._presencePos(pr);
@@ -818,6 +846,7 @@ export class Game {
       av.anim.seated = seated;
       av.anim.carrying = pr.h ? this.items.get(pr.h)?.type : null;
       av.anim.action = pr.a || null;
+      av.setSmoking(!!pr.sm);
       av.update(dt, this.time);
       if (pr.say && pr.say[0] !== rem.lastSay) {
         const first = rem.lastSay === undefined;
@@ -845,6 +874,15 @@ export class Game {
     }
   }
 
+  _remoteAvatar(pr, lk) {
+    return new Avatar(this.scene, pr.c ?? 1, String(pr.n || 'Crew').slice(0, 18), { look: { hat: Number(lk[0]) || 0, glasses: Number(lk[1]) || 0, skin: Number(lk[2]) || 0 } });
+  }
+
+  _lookCode() {
+    const lk = lookOf(this.opts.look);
+    return [lk.hat, lk.glasses, lk.skin];
+  }
+
   // ------------------------------------------------------------------ input and interactions
 
   _handleInput(dt) {
@@ -867,6 +905,7 @@ export class Game {
     if (this.hud?.quickChatOpen) for (let k = 1; k <= 6; k++) if (i.hit('Digit' + k)) this._sayQuick(k - 1);
     if (i.hit('KeyT')) this.hud?.toggleQuickChat();
     if (i.hit('KeyV')) this.waving = 1.6;
+    if (i.hit('KeyC')) this._smoke();
     this.waving = Math.max(0, this.waving - dt);
     if (i.hit('KeyQ') && p.held && !p.seat) this._drop();
     if (i.hit('Backspace') && !p.seat) p.respawnAtRig();
@@ -1006,6 +1045,12 @@ export class Game {
         const ok = cap.distanceTo(pump) < 12;
         add('e', dp, { id: 'pump', label: ok ? 'Fill up the truck' : 'Park the truck by the pump to fill up', disabled: !ok, hold: 3, anim: 'pour', run: () => this.session.act('R', 'fuel', 100) });
       }
+      const vend = S.spots.smokes;
+      const dm = vend.distanceTo(pos);
+      if (dm < 2.2) {
+        const full = p.cigs >= PACK_SIZE;
+        add('e', dm, { id: 'smokes', label: full ? 'Your pack is full' : 'Buy a pack of smokes', disabled: full, run: () => { p.cigs = PACK_SIZE; this.audio?.play('pick'); this.hud?.toast(`Fresh pack: ${PACK_SIZE} smokes. C to light one up.`); } });
+      }
       const valve = S.spots.valve;
       const dv = valve.distanceTo(pos);
       if (dv < 2.8) {
@@ -1074,6 +1119,16 @@ export class Game {
 
   requestRestart() {
     this.session.act('W', 'restart');
+  }
+
+  _smoke() {
+    const p = this.player;
+    const r = p.toggleSmoke();
+    if (r === 'empty') this.hud?.toast('Out of smokes. The machine at the gas station sells them.');
+    else if (r === 'lit') {
+      this.audio?.play('lighter');
+      if (p.cigs === 0) this.hud?.toast("That's your last smoke. Restock at the gas station.");
+    } else this.audio?.play('flick');
   }
 
   _doPing() {
@@ -1299,6 +1354,7 @@ export class Game {
       },
       seat: p.seat,
       held: p.held ? this.items.get(p.held)?.def.label : null,
+      smokes: { n: p.cigs, t: Math.ceil(p.cigT) },
       cand: this.cand,
       hold: this.hold ? { label: this.hold.label, t: this.hold.t / this.hold.dur } : null,
       lifting: this.lifting,

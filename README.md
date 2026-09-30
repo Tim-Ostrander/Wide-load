@@ -22,6 +22,12 @@ Along the way the water sloshes (and spills), straps loosen and snap, tires
 blow on hard hits, and fuel runs low. Pay is $12,000 minus damage to Dolores
 and fines.
 
+The crew are short, barrel-chested guys with mustaches and a cigarette on the
+go. On the title screen you pick a crew color, a lid (cowboy hat, trucker cap,
+bucket hat, hard hat, beanie or none), shades and skin tone. Everyone starts
+with 5 smokes. A lit one burns for 40 seconds and you walk 20% faster while it
+does. Restock at the machine outside the gas station shop.
+
 ## Play
 
 **On claude.ai:** the published artifact. Solo works for anyone who can open it;
@@ -73,13 +79,14 @@ game, not account security.
 | Tiller seat | A/D steer the trailer's rear wheels |
 | G / T / V | Ping, quick chat (1–6), wave |
 | Esc | Pause: call a tow, restart, mute |
+| C | Light a smoke, or flick it away |
 | Backspace | Respawn next to the truck |
 
 ## How it's built
 
 Plain ES modules; the only build step wraps `index.html` in a document for
-static hosts. three.js r169 renders with cel shading and a depth-based ink
-outline pass; cannon-es 0.20 runs the physics. Both load from jsDelivr
+static hosts. three.js r169 renders flat-shaded low-poly models under soft
+Lambert light; cannon-es 0.20 runs the physics. Both load from jsDelivr
 (`src/lib.js`). Every model, texture and sound is generated in code.
 
 ```
@@ -96,10 +103,11 @@ src/
   world/structures.js obstacles, buildings, scenery and their colliders
   world/env.js       sky, sun, fog, sea shader
   items.js           carryable items (host-simulated)
-  player.js          crew avatar and the local character controller
+  player.js          crew avatars (hats, shades, smoking) and the local
+                     character controller
   net/session.js     solo and room sessions
   net/mesh.js        the same room API over WebRTC, for password co-op
-  render/            cel shading ramp and the ink-outline pass
+  render/lowpoly.js  the shared flat-shaded material
   ui/hud.js          HUD, minimap, toasts
   audio.js           procedural WebAudio
 ```

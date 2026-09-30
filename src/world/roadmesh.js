@@ -1,6 +1,6 @@
 // The drivable road surface as a textured ribbon.
 import { THREE } from '../lib.js';
-import { toonMaterial } from '../render/toon.js';
+import { lowPolyMaterial } from '../render/lowpoly.js';
 
 function roadTexture() {
   const c = document.createElement('canvas');
@@ -60,7 +60,7 @@ export function createRoadMesh(road, skip) {
   g.setIndex(idx);
   g.computeVertexNormals();
   g.computeBoundingSphere();
-  const mat = toonMaterial({
+  const mat = lowPolyMaterial({
     map: roadTexture(),
     polygonOffset: true,
     polygonOffsetFactor: -2,
