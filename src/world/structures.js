@@ -338,7 +338,7 @@ export class Structures {
     this.overpassBottom = deckBottom;
     // clearance signs on both faces
     for (const s of [1, -1]) {
-      const sg = textTexture(["LOW CLEARANCE 14'-9\""], { w: 1024, h: 160, bg: '#f5c518', fg: '#141414', border: 10, font: '900 110px "Big Shoulders Display", Impact, sans-serif' });
+      const sg = textTexture(["LOW CLEARANCE 14'-5\""], { w: 1024, h: 160, bg: '#f5c518', fg: '#141414', border: 10, font: '900 110px "Big Shoulders Display", Impact, sans-serif' });
       const m = new THREE.Mesh(new THREE.PlaneGeometry(5.5, 0.86), new THREE.MeshStandardMaterial({ map: sg }));
       const p = f.at(0, t.clearance + 0.62, s * 2.66);
       m.position.copy(p);
@@ -752,7 +752,7 @@ export class Structures {
     };
     put('tree', 60, ['TREE DOWN', 'AHEAD']);
     put('lines', 55, ['LOW WIRES', 'AHEAD']);
-    put('overpass', 60, ["LOW CLEARANCE", "14'-9\""]);
+    put('overpass', 60, ["LOW CLEARANCE", "14'-5\""]);
     put('station', 70, ['FUEL · WATER', '½ MILE'], { bg: '#17613f', fg: '#f3efe2' });
     put('bridge', 60, ['WEIGHT LIMIT', '20 TONS'], { bg: '#f3efe2', fg: '#141414' });
     put('washout', 60, ['ROAD', 'WASHED OUT']);
