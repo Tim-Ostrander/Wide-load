@@ -1,0 +1,315 @@
+<title>Wide Load</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Overpass:ital,wght@0,400;0,600;0,800;1,400&family=Overpass+Mono:wght@500;700&display=swap">
+<style>
+  /* Layout: full-bleed 3D view; UI floats over it like roadside signage.
+     One deliberate look (dusk road + signage), so a single dark palette. */
+  :root {
+    color-scheme: dark;
+    --asphalt: #1b1d1a;
+    --asphalt-2: #262925;
+    --panel: rgba(24, 26, 23, 0.84);
+    --ink: #f2eee1;
+    --muted: #b3af9c;
+    --hivis: #f5c518;
+    --hivis-ink: #141414;
+    --sign: #17613f;
+    --sign-edge: #e9f0e8;
+    --warn: #e8572a;
+    --sea: #4fb3c6;
+    --ok: #8bc34a;
+    --paper: #ece5d1;
+    --paper-ink: #22201b;
+    --display: "Big Shoulders Display", Impact, "Arial Narrow", sans-serif;
+    --ui: "Overpass", "Segoe UI", system-ui, sans-serif;
+    --mono: "Overpass Mono", ui-monospace, Menlo, Consolas, monospace;
+    --gutter: 16px;
+  }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--asphalt); color: var(--ink); font-family: var(--ui); font-size: 15px; overflow: hidden; -webkit-font-smoothing: antialiased; }
+  button { font: inherit; color: inherit; }
+  :focus-visible { outline: 3px solid var(--hivis); outline-offset: 2px; }
+  #view { position: fixed; inset: 0; }
+  #view canvas { display: block; width: 100%; height: 100%; }
+  .key { display: inline-grid; place-items: center; min-width: 1.7em; height: 1.7em; padding: 0 0.35em; box-sizing: border-box; border-radius: 5px; background: var(--ink); color: var(--asphalt); font: 700 0.8em/1 var(--mono); box-shadow: 0 2px 0 #8d8a7c; }
+
+  /* ---------- loading ---------- */
+  #loading { position: fixed; inset: 0; display: grid; place-items: center; background: var(--asphalt); z-index: 50; }
+  #loading .ld { display: grid; gap: 14px; justify-items: center; padding-inline: var(--gutter); text-align: center; }
+  #loading .ld-banner { background: var(--hivis); color: var(--hivis-ink); font: 900 clamp(34px, 8vw, 64px)/1 var(--display); letter-spacing: 0.04em; padding: 10px 22px 6px; border: 5px solid var(--hivis-ink); outline: 4px solid var(--hivis); }
+  #loading p { margin: 0; color: var(--muted); font: 500 13px/1.4 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; }
+
+  /* ---------- title / lobby ---------- */
+  #menu { position: fixed; inset: 0; overflow-y: auto; z-index: 20; background: linear-gradient(90deg, rgba(20, 22, 19, 0.92) 0%, rgba(20, 22, 19, 0.78) 34%, rgba(20, 22, 19, 0) 62%); }
+  .menu-col { box-sizing: border-box; width: min(500px, 100%); padding: 28px var(--gutter) 40px clamp(16px, 4vw, 56px); display: grid; gap: 18px; }
+  .banner { justify-self: start; background: var(--hivis); color: var(--hivis-ink); border: 5px solid var(--hivis-ink); outline: 4px solid var(--hivis); padding: 6px 18px 2px; transform: rotate(-1.2deg); margin: 6px 0 0 4px; }
+  .banner small { display: block; font: 800 13px/1 var(--ui); letter-spacing: 0.32em; }
+  .banner h1 { margin: 2px 0 0; font: 900 clamp(56px, 11vw, 92px)/0.9 var(--display); letter-spacing: 0.02em; }
+  .tag { margin: 0; max-width: 42ch; font-size: 16px; line-height: 1.5; text-wrap: pretty; }
+  .ticket { background: var(--paper); color: var(--paper-ink); border-radius: 3px; padding: 14px 14px 10px; font: 500 12.5px/1.45 var(--mono); position: relative; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); }
+  .ticket::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 6px; background: repeating-linear-gradient(90deg, var(--paper-ink) 0 6px, transparent 6px 12px); opacity: 0.18; }
+  .ticket header { display: flex; justify-content: space-between; gap: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; border-bottom: 1.5px dashed #8f8870; padding-bottom: 6px; margin-bottom: 6px; flex-wrap: wrap; }
+  .ticket dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; }
+  .ticket dt { text-transform: uppercase; color: #6b6553; letter-spacing: 0.06em; }
+  .ticket dd { margin: 0; min-width: 0; }
+  .crew-setup { display: grid; gap: 10px; }
+  .crew-setup label { font: 700 12px/1 var(--ui); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+  .crew-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  #name { flex: 1 1 160px; min-width: 0; background: var(--asphalt-2); color: var(--ink); border: 2px solid #4b4f47; border-radius: 6px; padding: 9px 10px; font: 600 15px var(--ui); }
+  #name:focus { border-color: var(--hivis); outline: none; }
+  .hats { display: flex; gap: 6px; }
+  .hat { width: 30px; height: 30px; border-radius: 50%; border: 3px solid transparent; cursor: pointer; padding: 0; box-shadow: inset 0 -6px 0 rgba(0, 0, 0, 0.18); }
+  .hat[aria-pressed="true"] { border-color: var(--ink); transform: scale(1.1); }
+  .signs { display: grid; gap: 10px; }
+  .sign { display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left; background: var(--sign); color: var(--ink); border: 0; border-radius: 8px; padding: 12px 16px; font: 800 19px/1.1 var(--ui); cursor: pointer; box-shadow: inset 0 0 0 3px var(--sign), inset 0 0 0 5px var(--sign-edge), 0 6px 18px rgba(0, 0, 0, 0.35); transition: transform 0.12s ease; }
+  .sign:hover { transform: translateX(4px); }
+  .sign:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .sign .arrow { font: 900 26px/1 var(--display); }
+  .sign small { display: block; font: 400 13px/1.3 var(--ui); opacity: 0.85; margin-top: 3px; }
+  .sign.alt { background: #2c302b; box-shadow: inset 0 0 0 3px #2c302b, inset 0 0 0 5px #8d8a7c, 0 6px 18px rgba(0, 0, 0, 0.35); }
+  #lobby { background: var(--panel); border-radius: 8px; padding: 12px 14px; display: grid; gap: 8px; }
+  #lobby h3 { margin: 0; font: 700 12px/1 var(--ui); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+  #lobby-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  #lobby-list:empty { display: none; }
+  #lobby-list li { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--asphalt-2); border-radius: 6px; padding: 8px 10px; }
+  #lobby-list .who { min-width: 0; overflow-wrap: anywhere; }
+  #lobby-list .who b { display: block; }
+  #lobby-list .who span { color: var(--muted); font-size: 13px; }
+  #lobby-list button { background: var(--hivis); color: var(--hivis-ink); border: 0; border-radius: 5px; padding: 7px 12px; font-weight: 800; cursor: pointer; flex: none; }
+  .note { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+  details.controls { background: var(--panel); border-radius: 8px; padding: 10px 14px; }
+  details.controls summary { cursor: pointer; font: 700 12px/1.6 var(--ui); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+  .ctl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 12px; margin-top: 10px; font-size: 13.5px; align-items: center; }
+  .ctl h4 { grid-column: 1 / -1; margin: 8px 0 0; font: 700 11px/1 var(--ui); letter-spacing: 0.14em; text-transform: uppercase; color: var(--hivis); }
+  .ctl .keys { display: flex; gap: 3px; flex-wrap: wrap; }
+  .touch-note { display: none; }
+  @media (hover: none) and (pointer: coarse) { .touch-note { display: block; } }
+
+  /* ---------- HUD ---------- */
+  #hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; font-variant-numeric: tabular-nums; }
+  #hud > * { position: absolute; }
+  .objective { top: 16px; left: 16px; width: min(380px, calc(100vw - 260px)); box-sizing: border-box; background: var(--sign); border-radius: 9px; padding: 10px 14px 11px; box-shadow: inset 0 0 0 3px var(--sign), inset 0 0 0 5px var(--sign-edge), 0 8px 22px rgba(0, 0, 0, 0.35); }
+  .objective .obj-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .objective .obj-title { font: 800 17px/1.2 var(--ui); text-wrap: balance; }
+  .objective .obj-dist { font: 800 22px/1 var(--display); color: var(--hivis); white-space: nowrap; }
+  .objective .obj-detail { margin-top: 5px; font-size: 13.5px; line-height: 1.4; opacity: 0.92; }
+  #minimap { top: 16px; right: 16px; width: 190px; height: 190px; border-radius: 50%; box-shadow: 0 0 0 4px var(--asphalt), 0 0 0 6px #6c6f66, 0 8px 22px rgba(0, 0, 0, 0.4); background: #2f3a2a; }
+  .jobclock { top: 218px; right: 16px; width: 190px; text-align: center; font: 700 13px/1.4 var(--mono); text-shadow: 0 1px 3px #000; }
+  .jobclock b { color: var(--hivis); }
+  #netinfo { right: 16px; top: 240px; width: 190px; text-align: center; font: 500 12px/1.4 var(--mono); color: var(--muted); text-shadow: 0 1px 3px #000; }
+  #netinfo b { color: var(--hivis); letter-spacing: 0.1em; }
+  #toasts { top: 18px; left: 50%; transform: translateX(-50%); display: grid; gap: 6px; justify-items: center; width: min(460px, calc(100vw - 660px)); min-width: 260px; }
+  .toast { background: var(--hivis); color: var(--hivis-ink); font: 700 14.5px/1.35 var(--ui); padding: 8px 14px; border-radius: 6px; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35); text-align: center; animation: toast-in 0.25s ease-out; }
+  .toast.out { opacity: 0; transition: opacity 0.4s; }
+  @keyframes toast-in { from { transform: translateY(-8px); opacity: 0; } }
+  .panel { background: var(--panel); border-radius: 10px; padding: 10px 12px; box-shadow: 0 8px 22px rgba(0, 0, 0, 0.3); box-sizing: border-box; }
+  .plabel { font: 700 11px/1 var(--ui); letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+  #dolores { left: 16px; bottom: 16px; width: 250px; display: grid; gap: 7px; }
+  #dolores .d-head { display: flex; align-items: baseline; gap: 10px; }
+  #dolores .d-name { font: 900 26px/0.9 var(--display); letter-spacing: 0.02em; }
+  #dolores .mood { font-size: 13px; color: var(--muted); font-style: italic; min-height: 1.3em; }
+  .meter { display: grid; grid-template-columns: 52px 1fr 38px; align-items: center; gap: 8px; font: 700 12px/1 var(--mono); }
+  .meter .bar { height: 9px; background: #3a3d37; border-radius: 5px; overflow: hidden; }
+  .meter .bar i { display: block; height: 100%; width: 50%; background: var(--sea); border-radius: 5px; transition: width 0.2s linear; }
+  .meter.health .bar i { background: var(--ok); }
+  .meter.fuel .bar i { background: var(--hivis); }
+  .meter.low .bar i { background: var(--warn); }
+  .meter span:last-child { text-align: right; }
+  .straps { display: flex; gap: 5px; align-items: center; }
+  .straps i { flex: 1; height: 8px; border-radius: 2px; background: var(--hivis); }
+  .straps i.worn { background: #f08a1c; }
+  .straps i.bad { background: var(--warn); }
+  .straps i.gone { background: #3a3d37; outline: 1.5px dashed var(--warn); outline-offset: -1.5px; }
+  #rigpanel { right: 16px; bottom: 16px; width: 250px; display: grid; gap: 8px; }
+  .speed { display: flex; align-items: baseline; gap: 6px; }
+  .speed b { font: 900 52px/0.85 var(--display); }
+  .speed span { font: 700 12px/1 var(--mono); color: var(--muted); }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip { font: 700 11.5px/1 var(--mono); padding: 5px 7px; border-radius: 4px; background: #3a3d37; letter-spacing: 0.03em; }
+  .chip.on { background: var(--hivis); color: var(--hivis-ink); }
+  .chip.warn { background: var(--warn); color: #fff; }
+  .tirerow { display: flex; gap: 14px; align-items: center; }
+  .tires { display: grid; grid-template-columns: repeat(10, 12px); gap: 4px; }
+  .tires i { width: 12px; height: 16px; border-radius: 3px; background: #6f7369; }
+  .tires i.hurt { background: #f08a1c; }
+  .tires i.flat { background: var(--warn); }
+  #prompt { left: 50%; bottom: 120px; transform: translateX(-50%); display: grid; gap: 6px; justify-items: center; }
+  .prompt-line { display: flex; align-items: center; gap: 9px; background: var(--panel); border-radius: 8px; padding: 8px 12px; font: 700 15px/1.2 var(--ui); max-width: min(520px, calc(100vw - 32px)); }
+  .prompt-line.disabled { opacity: 0.6; }
+  .holdbar { width: 240px; height: 7px; background: #3a3d37; border-radius: 4px; overflow: hidden; }
+  .holdbar i { display: block; height: 100%; width: 0; background: var(--hivis); }
+  #crosshair { left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: var(--ink); box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.45); opacity: 0.8; }
+  #crew { left: 16px; top: 50%; transform: translateY(-50%); display: grid; gap: 6px; width: 220px; }
+  #crewlist { display: grid; gap: 6px; }
+  #crew .member { display: flex; align-items: center; gap: 8px; background: var(--panel); border-radius: 7px; padding: 6px 9px; font-size: 13px; }
+  #crew .member .dot { width: 12px; height: 12px; border-radius: 50%; flex: none; box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.2); }
+  #crew .member .nm { font-weight: 800; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #crew .member .st { margin-left: auto; color: var(--muted); font-size: 12px; white-space: nowrap; }
+  #chatlog { display: grid; gap: 3px; font-size: 13px; }
+  #chatlog div { background: rgba(24, 26, 23, 0.65); border-radius: 5px; padding: 4px 8px; }
+  #seathint { left: 50%; bottom: 18px; transform: translateX(-50%); display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; font-size: 13px; text-shadow: 0 1px 3px #000; width: min(640px, calc(100vw - 580px)); min-width: 260px; }
+  #seathint span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+  #quickchat { left: 50%; top: 50%; transform: translate(-50%, -50%); background: var(--panel); border-radius: 10px; padding: 12px 14px; display: grid; gap: 6px; min-width: 220px; }
+  #quickchat div { display: flex; gap: 10px; align-items: center; font-weight: 700; }
+  #waiting { left: 50%; top: 42%; transform: translate(-50%, -50%); font: 800 18px/1.3 var(--ui); background: var(--panel); padding: 14px 18px; border-radius: 10px; text-align: center; max-width: calc(100vw - 32px); box-sizing: border-box; }
+  #clicklook { left: 50%; top: 58%; transform: translateX(-50%); font-size: 13px; background: var(--panel); padding: 6px 12px; border-radius: 6px; white-space: nowrap; }
+
+  /* ---------- overlays ---------- */
+  .overlay { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; background: rgba(15, 16, 14, 0.62); overflow-y: auto; padding: 24px var(--gutter); box-sizing: border-box; }
+  .card { background: var(--asphalt); border-radius: 12px; width: min(440px, 100%); box-sizing: border-box; padding: 22px; display: grid; gap: 12px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5); }
+  .card h2 { margin: 0; font: 900 40px/0.95 var(--display); letter-spacing: 0.02em; }
+  .card p { margin: 0; line-height: 1.5; color: var(--muted); }
+  .card .sign { font-size: 17px; }
+  .invoice { background: var(--paper); color: var(--paper-ink); border-radius: 3px; padding: 14px 16px; font: 500 13px/1.5 var(--mono); display: grid; gap: 4px; }
+  .invoice .row { display: flex; justify-content: space-between; gap: 14px; }
+  .invoice .row span:first-child { min-width: 0; }
+  .invoice .row span:last-child { white-space: nowrap; }
+  .invoice .neg { color: #a8321c; }
+  .invoice .total { border-top: 1.5px dashed #8f8870; margin-top: 6px; padding-top: 6px; font-weight: 700; font-size: 15px; }
+  .invoice .stamp { justify-self: end; margin-top: 4px; transform: rotate(-6deg); border: 3px solid currentColor; padding: 2px 10px; font: 900 22px/1.1 var(--display); letter-spacing: 0.06em; }
+  .stamp.won { color: var(--sign); }
+  .stamp.lost { color: #a8321c; }
+  @media (max-width: 900px) {
+    #crew, #seathint { display: none; }
+    #toasts { width: calc(100vw - 32px); top: auto; bottom: 230px; }
+  }
+  @media (max-width: 720px) {
+    .objective { width: calc(100vw - 32px); }
+    #minimap, .jobclock, #netinfo { display: none; }
+    #dolores, #rigpanel { width: calc(50vw - 24px); }
+  }
+  @media (max-height: 620px) {
+    .objective .obj-detail, #dolores .mood, #dolores .d-head .plabel, .tirerow, #crew { display: none; }
+    .speed b { font-size: 36px; }
+    #prompt { bottom: 90px; }
+    #seathint { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .toast, .sign { animation: none; transition: none; }
+  }
+</style>
+
+<div id="view"></div>
+
+<div id="loading"><div class="ld"><div class="ld-banner">WIDE LOAD</div><p id="loading-msg">Grading the road…</p></div></div>
+
+<section id="menu" hidden>
+  <div class="menu-col">
+    <div class="banner"><small>OVERSIZE LOAD</small><h1>WIDE LOAD</h1></div>
+    <p class="tag">A co-op hauling game. Get Dolores the beluga from the depot to the sea without killing her, the truck, or the county power grid.</p>
+    <article class="ticket" aria-label="Job ticket">
+      <header><span>Bill of lading</span><span>Job #0412</span></header>
+      <dl>
+        <dt>Cargo</dt><dd>Dolores, beluga whale, 4.1 m, in a 3.6 m glass tank</dd>
+        <dt>From</dt><dd>Two Guys &amp; a Flatbed depot</dd>
+        <dt>To</dt><dd>Gull Harbor boat ramp</dd>
+        <dt>Route</dt><dd>1.6 km: fallen tree, low wires, 14'-5" rail bridge, weak bridge, washout, switchbacks</dd>
+        <dt>Pay</dt><dd>$12,000, less damages and fines</dd>
+      </dl>
+    </article>
+    <div class="crew-setup">
+      <label for="name">Your name on the crew list</label>
+      <div class="crew-row">
+        <input id="name" maxlength="18" autocomplete="off" spellcheck="false" value="Driver">
+        <div class="hats" id="hats" role="group" aria-label="Hard hat color"></div>
+      </div>
+    </div>
+    <nav class="signs" aria-label="Start">
+      <button class="sign" id="btn-solo"><span>Start the job solo<small>You drive, you haul, you fix.</small></span><span class="arrow">→</span></button>
+      <button class="sign" id="btn-host"><span>Host a co-op job<small>Up to 4 crew. Friends join from this page.</small></span><span class="arrow">→</span></button>
+      <div id="lobby">
+        <h3>Open co-op jobs</h3>
+        <ul id="lobby-list"></ul>
+        <p class="note" id="lobby-note">Looking for crews…</p>
+      </div>
+    </nav>
+    <details class="controls">
+      <summary>Controls</summary>
+      <div class="ctl">
+        <h4>On foot</h4>
+        <span class="keys"><span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span></span><span>Walk (hold <span class="key">Shift</span> to run)</span>
+        <span class="keys"><span class="key">Mouse</span></span><span>Look (click the view to lock the mouse)</span>
+        <span class="keys"><span class="key">E</span></span><span>Use or pick up; hold it for jobs like cutting or ratcheting</span>
+        <span class="keys"><span class="key">Q</span></span><span>Drop what you're carrying</span>
+        <span class="keys"><span class="key">F</span></span><span>Get in or out of a seat</span>
+        <span class="keys"><span class="key">Space</span></span><span>Jump</span>
+        <span class="keys"><span class="key">⌫</span></span><span>Lost? Respawn next to the truck</span>
+        <h4>In the cab</h4>
+        <span class="keys"><span class="key">W</span><span class="key">S</span></span><span>Throttle, brake and reverse</span>
+        <span class="keys"><span class="key">A</span><span class="key">D</span></span><span>Steer</span>
+        <span class="keys"><span class="key">B</span></span><span>Raise or lower the trailer bed</span>
+        <span class="keys"><span class="key">X</span></span><span>Trailer auto-steer on or off</span>
+        <span class="keys"><span class="key">H</span><span class="key">L</span></span><span>Horn, headlights</span>
+        <span class="keys"><span class="key">Space</span></span><span>Parking brake</span>
+        <h4>Crew</h4>
+        <span class="keys"><span class="key">G</span></span><span>Ping the spot you're looking at</span>
+        <span class="keys"><span class="key">T</span></span><span>Quick chat, then 1–6</span>
+        <span class="keys"><span class="key">V</span></span><span>Wave</span>
+        <span class="keys"><span class="key">Esc</span></span><span>Pause: call a tow, restart, sound</span>
+      </div>
+    </details>
+    <p class="note touch-note">Wide Load is played with a keyboard and mouse.</p>
+  </div>
+</section>
+
+<div id="hud" hidden>
+  <div class="objective" aria-live="polite"><div class="obj-head"><div class="obj-title"></div><div class="obj-dist"></div></div><div class="obj-detail"></div></div>
+  <canvas id="minimap" width="380" height="380"></canvas>
+  <div class="jobclock"></div>
+  <div id="netinfo"></div>
+  <div id="toasts" aria-live="polite"></div>
+  <div id="crew"><div id="crewlist"></div><div id="chatlog"></div></div>
+  <div id="dolores" class="panel">
+    <div class="d-head"><div class="d-name">DOLORES</div><div class="plabel">beluga · 4.1 m</div></div>
+    <div class="meter health"><span>HEALTH</span><div class="bar"><i></i></div><span></span></div>
+    <div class="meter water"><span>WATER</span><div class="bar"><i></i></div><span></span></div>
+    <div class="plabel">Straps</div>
+    <div class="straps"><i></i><i></i><i></i><i></i></div>
+    <div class="mood"></div>
+  </div>
+  <div id="rigpanel" class="panel">
+    <div class="speed"><b>0</b><span>KM/H</span></div>
+    <div class="meter fuel"><span>FUEL</span><div class="bar"><i></i></div><span></span></div>
+    <div class="chips"><span class="chip" id="chip-bed">BED UP</span><span class="chip" id="chip-tiller">TRAILER AUTO</span><span class="chip" id="chip-fines">FINES $0</span></div>
+    <div class="tirerow"><div class="plabel">Tires</div><div class="tires" id="tires"></div></div>
+  </div>
+  <div id="crosshair"></div>
+  <div id="prompt"></div>
+  <div id="seathint"></div>
+  <div id="quickchat" hidden></div>
+  <div id="waiting" hidden>Connecting to the host…</div>
+  <div id="clicklook" hidden>Click the view to look around with the mouse</div>
+</div>
+
+<div id="pause" class="overlay" hidden>
+  <div class="card">
+    <h2>Paused</h2>
+    <p id="pause-note">The job keeps running for the rest of the crew.</p>
+    <button class="sign" id="btn-resume"><span>Back to the job</span><span class="arrow">→</span></button>
+    <button class="sign alt" id="btn-tow"><span>Call a tow truck<small>Back to the last checkpoint · $1,500</small></span><span class="arrow">↺</span></button>
+    <button class="sign alt" id="btn-restart"><span>Restart the job<small>Everything resets for the whole crew</small></span><span class="arrow">↺</span></button>
+    <button class="sign alt" id="btn-mute"><span id="mute-label">Mute sound</span><span class="arrow">♪</span></button>
+    <button class="sign alt" id="btn-quit"><span>Quit to the title screen</span><span class="arrow">←</span></button>
+  </div>
+</div>
+
+<div id="end" class="overlay" hidden>
+  <div class="card">
+    <h2 id="end-title">Delivered</h2>
+    <p id="end-sub"></p>
+    <div class="invoice" id="invoice"></div>
+    <button class="sign" id="btn-again"><span>Run the job again</span><span class="arrow">↺</span></button>
+    <button class="sign alt" id="btn-endquit"><span>Back to the title screen</span><span class="arrow">←</span></button>
+  </div>
+</div>
+
+<div id="hostlost" class="overlay" hidden>
+  <div class="card">
+    <h2>Host left</h2>
+    <p>The crew member who hosted this job closed the page, so the job ended.</p>
+    <button class="sign" id="btn-lostquit"><span>Back to the title screen</span><span class="arrow">←</span></button>
+  </div>
+</div>
+
+<script type="module" src="src/main.js"></script>
