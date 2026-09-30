@@ -1,10 +1,12 @@
 // Sky, sun, fog and the sea.
 import { THREE } from '../lib.js';
 import { N, HALF, SIZE } from './terrain.js';
+import { toonMaterial } from '../render/toon.js';
+import { mulberry32 } from '../util/rng.js';
 
 export const SUN_DIR = new THREE.Vector3(-0.45, 0.62, 0.35).normalize();
-export const HORIZON = new THREE.Color(0xe9d6b8);
-export const ZENITH = new THREE.Color(0x5d8fc4);
+export const HORIZON = new THREE.Color(0xcdeeff);
+export const ZENITH = new THREE.Color(0x3f9be6);
 
 export function createSky() {
   const geo = new THREE.SphereGeometry(2400, 32, 16);
@@ -30,11 +32,12 @@ export function createSky() {
       varying vec3 vDir;
       void main() {
         float h = clamp(vDir.y, -0.2, 1.0);
-        vec3 col = mix(uHorizon, uZenith, pow(max(h, 0.0), 0.55));
-        col = mix(col, uHorizon * 0.92, smoothstep(0.0, -0.2, h));
+        vec3 col = mix(uHorizon, uZenith, smoothstep(0.0, 0.55, max(h, 0.0)));
+        col = mix(col, uHorizon, smoothstep(0.0, -0.2, h));
         float s = max(dot(normalize(vDir), uSun), 0.0);
-        col += vec3(1.0, 0.85, 0.6) * pow(s, 900.0) * 3.0;
-        col += vec3(1.0, 0.75, 0.45) * pow(s, 12.0) * 0.28;
+        // a flat cartoon sun with a soft halo
+        col = mix(col, vec3(1.0, 0.97, 0.82) * 1.6, smoothstep(0.9975, 0.9985, s));
+        col += vec3(1.0, 0.9, 0.6) * pow(s, 24.0) * 0.18;
         gl_FragColor = vec4(col, 1.0);
         #include <colorspace_fragment>
       }`,
@@ -45,10 +48,40 @@ export function createSky() {
   return m;
 }
 
+/** Puffy cartoon clouds drifting over the map. */
+export function createClouds() {
+  const rnd = mulberry32(99);
+  const group = new THREE.Group();
+  const mat = toonMaterial({ color: 0xffffff, emissive: 0x9fb8cc, emissiveIntensity: 0.35 });
+  const puff = new THREE.IcosahedronGeometry(1, 2);
+  for (let k = 0; k < 34; k++) {
+    const c = new THREE.Group();
+    const n = 4 + Math.floor(rnd() * 4);
+    for (let i = 0; i < n; i++) {
+      const m = new THREE.Mesh(puff, mat);
+      const r = 9 + rnd() * 10;
+      m.scale.set(r * 1.25, r * 0.8, r);
+      m.position.set((i - n / 2) * 11 + rnd() * 6, rnd() * 5, (rnd() - 0.5) * 12);
+      c.add(m);
+    }
+    c.position.set(-700 + rnd() * 1400, 150 + rnd() * 90, -700 + rnd() * 1400);
+    c.rotation.y = rnd() * Math.PI;
+    c.userData.speed = 1.5 + rnd() * 2;
+    group.add(c);
+  }
+  group.userData.update = (dt) => {
+    for (const c of group.children) {
+      c.position.x -= c.userData.speed * dt;
+      if (c.position.x < -800) c.position.x += 1600;
+    }
+  };
+  return group;
+}
+
 export function createLights(scene) {
-  const hemi = new THREE.HemisphereLight(0xcfe3ff, 0x6b5a3e, 1.15);
+  const hemi = new THREE.HemisphereLight(0xe4f4ff, 0x8a7a5a, 1.35);
   scene.add(hemi);
-  const sun = new THREE.DirectionalLight(0xfff0d8, 2.6);
+  const sun = new THREE.DirectionalLight(0xfff4e0, 2.3);
   sun.position.copy(SUN_DIR).multiplyScalar(200);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
@@ -92,8 +125,8 @@ export function createSea(terrain) {
       uTime: { value: 0 },
       uDepth: { value: null },
       uSun: { value: SUN_DIR.clone() },
-      uShallow: { value: new THREE.Color(0x4fb3b5) },
-      uDeep: { value: new THREE.Color(0x1d5a78) },
+      uShallow: { value: new THREE.Color(0x5fe3d6) },
+      uDeep: { value: new THREE.Color(0x1f74c9) },
       uSky: { value: HORIZON.clone() },
     },
   ]);
@@ -125,21 +158,20 @@ export function createSea(terrain) {
         float ground = texture2D(uDepth, uv).r * 18.0 - 14.0;
         if (uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0) ground = -14.0;
         float depth = max(0.0, vWorld.y - ground);
-        // ripples
-        float r1 = sin(vWorld.x * 0.9 + uTime * 1.7 + sin(vWorld.z * 0.4)) * 0.5 + 0.5;
-        float r2 = sin(vWorld.z * 1.1 - uTime * 1.2 + sin(vWorld.x * 0.3)) * 0.5 + 0.5;
-        float camDist = length(cameraPosition - vWorld);
-        float rip = 0.12 * (1.0 - smoothstep(30.0, 160.0, camDist));
-        vec3 n = normalize(vec3((r1 - 0.5) * rip, 1.0, (r2 - 0.5) * rip));
+        // stepped cartoon water: bands of colour by depth
+        float band = depth < 0.9 ? 0.0 : depth < 3.0 ? 0.45 : depth < 7.0 ? 0.75 : 1.0;
+        vec3 col = mix(uShallow, uDeep, band);
         vec3 viewDir = normalize(cameraPosition - vWorld);
-        float fres = pow(1.0 - max(dot(viewDir, n), 0.0), 3.0);
-        vec3 col = mix(uShallow, uDeep, smoothstep(0.2, 7.0, depth));
-        col = mix(col, uSky, fres * 0.55);
-        vec3 h = normalize(viewDir + uSun);
-        col += vec3(1.0, 0.9, 0.7) * pow(max(dot(n, h), 0.0), 220.0) * 1.6;
-        float foam = smoothstep(0.55, 0.0, depth) * (0.6 + 0.4 * sin(uTime * 2.0 + vWorld.x * 0.7 + vWorld.z * 0.5));
-        col = mix(col, vec3(0.95, 0.97, 0.95), clamp(foam, 0.0, 1.0));
-        float alpha = mix(0.55, 0.95, smoothstep(0.0, 2.5, depth));
+        // drifting sparkles
+        float sp = sin(vWorld.x * 0.35 + uTime * 1.1) * sin(vWorld.z * 0.29 - uTime * 0.8);
+        float camDist = length(cameraPosition - vWorld);
+        col += vec3(0.9) * step(0.985, sp) * (1.0 - smoothstep(60.0, 200.0, camDist));
+        // foam: a solid band at the shore plus a dashed line a little further out
+        float wave = sin(uTime * 1.6 + vWorld.x * 0.15 + vWorld.z * 0.1) * 0.12;
+        float foam = step(depth, 0.32 + wave);
+        foam = max(foam, step(abs(depth - (0.85 + wave)), 0.06) * step(0.0, sin(vWorld.x * 0.8 + vWorld.z * 0.6 + uTime)));
+        col = mix(col, vec3(1.0), foam);
+        float alpha = mix(0.7, 0.96, smoothstep(0.0, 2.0, depth));
         gl_FragColor = vec4(col, alpha);
         #include <colorspace_fragment>
         #include <fog_fragment>
@@ -154,5 +186,5 @@ export function createSea(terrain) {
 }
 
 export function createCreekMaterial() {
-  return new THREE.MeshStandardMaterial({ color: 0x4f9fa8, roughness: 0.15, metalness: 0.1, transparent: true, opacity: 0.82 });
+  return toonMaterial({ color: 0x4fd0dc, transparent: true, opacity: 0.88 });
 }

@@ -3,6 +3,7 @@
 import { THREE, CANNON } from '../lib.js';
 import { createNoise2D, fbm } from '../util/noise.js';
 import { clamp, lerp, smoothstep } from '../util/rng.js';
+import { toonMaterial } from '../render/toon.js';
 
 export const SIZE = 1024;
 export const ES = 2;
@@ -56,7 +57,7 @@ function detailTexture() {
       const u = x / S, v = y / S;
       const f = (a, b) => n(a * 24, b * 24) * 0.6 + n(a * 70, b * 70) * 0.4;
       const val = f(u, v) * (1 - u) * (1 - v) + f(u - 1, v) * u * (1 - v) + f(u, v - 1) * (1 - u) * v + f(u - 1, v - 1) * u * v;
-      const k = 222 + val * 34 + (Math.random() - 0.5) * 22;
+      const k = 240 + val * 15;
       const o = (y * S + x) * 4;
       img.data[o] = img.data[o + 1] = img.data[o + 2] = Math.max(0, Math.min(255, k));
       img.data[o + 3] = 255;
@@ -332,13 +333,13 @@ export class Terrain {
   createMeshes() {
     const group = new THREE.Group();
     const CH = 64;
-    const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.97, metalness: 0, map: detailTexture() });
+    const mat = toonMaterial({ vertexColors: true, map: detailTexture() });
     const r = this.road;
     const q = {};
     const col = new THREE.Color();
-    const cGrass = new THREE.Color(0x6f8a3a), cDry = new THREE.Color(0xa39a52), cDark = new THREE.Color(0x4d6a2c);
-    const cDirt = new THREE.Color(0x8b7358), cRock = new THREE.Color(0x857d72), cSand = new THREE.Color(0xd9c79b);
-    const cBed = new THREE.Color(0x8d8468), cDeep = new THREE.Color(0x5f6b62);
+    const cGrass = new THREE.Color(0x7fc94a), cDry = new THREE.Color(0xc2cf5c), cDark = new THREE.Color(0x4f9f3c);
+    const cDirt = new THREE.Color(0xc4935c), cRock = new THREE.Color(0xd0a878), cSand = new THREE.Color(0xf5dfa0);
+    const cBed = new THREE.Color(0xb3a37a), cDeep = new THREE.Color(0x6f8f96), cSnow = new THREE.Color(0xf4f8ff);
     const nrm = new THREE.Vector3();
     for (let cj = 0; cj < (N - 1) / CH; cj++) {
       for (let ci = 0; ci < (N - 1) / CH; ci++) {
@@ -371,6 +372,7 @@ export class Terrain {
             col.lerp(cDark, clamp(n2 * 0.5 + 0.1, 0, 0.45));
             const slope = 1 - nrm.y;
             if (slope > 0.18) col.lerp(cRock, smoothstep(0.18, 0.4, slope));
+            if (h > 88) col.lerp(cSnow, smoothstep(88, 100, h + n1 * 6));
             const dc = x - coastX(z);
             if (h < 3.2 && dc < 45) col.lerp(cSand, smoothstep(3.2, 1.6, h));
             if (h < -0.4) col.copy(cSand).lerp(cDeep, smoothstep(-0.4, -9, h));

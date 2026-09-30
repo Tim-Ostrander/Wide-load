@@ -11,6 +11,7 @@ import { CameraRig } from './camera.js';
 import { Items, INITIAL_ITEMS } from './items.js';
 import { LocalPlayer, Avatar } from './player.js';
 import { Fx } from './fx.js';
+import { InkPass } from './render/post.js';
 import { clamp } from './util/rng.js';
 
 export const STEP = 1 / 60;
@@ -38,6 +39,7 @@ export class Game {
     renderer.toneMappingExposure = 1.0;
     view.appendChild(renderer.domElement);
     this.renderer = renderer;
+    this.ink = new InkPass(renderer);
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(60, view.clientWidth / view.clientHeight, 0.1, 3000);
     this.physics = createPhysics();
@@ -196,9 +198,26 @@ export class Game {
     rig.placeOnRoad(this.startIndex);
   }
 
+  /** Fast mode drops the outline pass and shadows and renders at 1x. */
+  setGraphics(fast) {
+    this.fastGfx = fast;
+    const r = this.renderer;
+    this.ink.enabled = !fast && r.capabilities.isWebGL2;
+    r.setPixelRatio(fast ? 1 : Math.min(devicePixelRatio, 2));
+    if (r.shadowMap.enabled === fast) {
+      r.shadowMap.enabled = !fast;
+      this.scene.traverse((o) => {
+        const mats = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : [];
+        for (const m of mats) m.needsUpdate = true;
+      });
+    }
+    this.resize();
+  }
+
   resize() {
     const w = this.view.clientWidth, h = this.view.clientHeight;
     this.renderer.setSize(w, h);
+    this.ink.setSize();
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
   }
@@ -696,7 +715,7 @@ export class Game {
     if (window.__WL_DEBUG && this.onDebugFrame) this.onDebugFrame(dt);
     // tests can skip frames to run the simulation faster than the renderer
     this._frameNo = (this._frameNo || 0) + 1;
-    if (!this.renderEvery || this._frameNo % this.renderEvery === 0) this.renderer.render(this.scene, this.camera);
+    if (!this.renderEvery || this._frameNo % this.renderEvery === 0) this.ink.render(this.scene, this.camera);
   }
 
   _syncLocalSeat() {

@@ -1,6 +1,7 @@
 // Geometry helpers: low-poly models are assembled from primitives with baked
 // vertex colors and merged into one BufferGeometry per model.
 import { THREE } from '../lib.js';
+import { toonMaterial } from '../render/toon.js';
 
 const _m = new THREE.Matrix4();
 const _q = new THREE.Quaternion();
@@ -93,12 +94,13 @@ export class ModelBuilder {
 }
 
 let _flatMat, _smoothMat;
+/** The shared cel-shaded material for vertex-colored models. */
 export function flatMaterial() {
-  if (!_flatMat) _flatMat = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.85, metalness: 0.05 });
+  if (!_flatMat) _flatMat = toonMaterial({ vertexColors: true });
   return _flatMat;
 }
 export function smoothMaterial() {
-  if (!_smoothMat) _smoothMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.7, metalness: 0.05 });
+  if (!_smoothMat) _smoothMat = toonMaterial({ vertexColors: true });
   return _smoothMat;
 }
 

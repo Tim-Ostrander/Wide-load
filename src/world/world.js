@@ -3,7 +3,7 @@ import { THREE } from '../lib.js';
 import { Road } from './road.js';
 import { Terrain } from './terrain.js';
 import { createRoadMesh } from './roadmesh.js';
-import { createSky, createLights, createSea, createCreekMaterial, HORIZON } from './env.js';
+import { createSky, createLights, createSea, createCreekMaterial, createClouds, HORIZON } from './env.js';
 
 export class World {
   constructor(scene, physics) {
@@ -15,9 +15,11 @@ export class World {
     this.buildMs = performance.now() - t0;
 
     scene.background = HORIZON.clone();
-    scene.fog = new THREE.Fog(HORIZON.clone(), 160, 900);
+    scene.fog = new THREE.Fog(HORIZON.clone(), 220, 1100);
     this.sky = createSky();
     scene.add(this.sky);
+    this.clouds = createClouds();
+    scene.add(this.clouds);
     this.lights = createLights(scene);
 
     this.terrainMesh = this.terrain.createMeshes();
@@ -39,6 +41,7 @@ export class World {
   update(dt, time, focus) {
     this.sea.material.uniforms.uTime.value = time;
     this.sky.position.copy(focus);
+    this.clouds.userData.update(dt);
   }
 
   heightAt(x, z) {

@@ -5,20 +5,20 @@ import { THREE } from '../lib.js';
 import { ModelBuilder, flatMaterial, textTexture } from '../util/geo.js';
 
 export const PAINT = {
-  cab: 0xb8322a,
-  cabDark: 0x8e241e,
-  chrome: 0xd4d2cb,
-  black: 0x1d1d1d,
-  steel: 0x3a3d40,
-  deck: 0x2b2b2a,
-  wood: 0x7b5a3b,
-  glassTint: 0x2b3a44,
-  yellow: 0xf2c21b,
+  cab: 0xef4430,
+  cabDark: 0xc0322a,
+  chrome: 0xe8e6e0,
+  black: 0x2a2833,
+  steel: 0x4a4d58,
+  deck: 0x3d3b46,
+  wood: 0xb07a45,
+  glassTint: 0x3c5a73,
+  yellow: 0xffcc1a,
   amber: 0xffa321,
-  tankFrame: 0x4c6a7a,
-  strap: 0xf2c21b,
-  whale: 0xf1eee6,
-  whaleShade: 0xd9dfe2,
+  tankFrame: 0x2f8fd0,
+  strap: 0xffcc1a,
+  whale: 0xfbf8f2,
+  whaleShade: 0xe3ecf2,
 };
 
 export function bannerMesh(width, height) {
@@ -289,6 +289,10 @@ export function createWhale() {
   mb.sphere(0.075, 0x111111, [0.43, 0.08, 1.72], [1, 1, 1], 1);
   mb.sphere(0.075, 0x111111, [-0.43, 0.08, 1.72], [1, 1, 1], 1);
   mb.box(0.5, 0.03, 0.05, 0x5a4a4a, [0, -0.28, 2.18], [0, 0, 0]);
+  mb.sphere(0.1, 0xffb3c1, [0.5, -0.1, 1.8], [1, 0.6, 1], 1);
+  mb.sphere(0.1, 0xffb3c1, [-0.5, -0.1, 1.8], [1, 0.6, 1], 1);
+  mb.sphere(0.03, 0xffffff, [0.45, 0.13, 1.79], [1, 1, 1], 0);
+  mb.sphere(0.03, 0xffffff, [-0.41, 0.13, 1.79], [1, 1, 1], 0);
   const body = mb.mesh(flatMaterial());
   bodyPivot.add(body);
   // tail stock + fluke on a pivot so it can beat

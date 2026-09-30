@@ -228,7 +228,7 @@ export class Hud {
       const c = document.createElement('canvas');
       c.width = c.height = 1024;
       const g = c.getContext('2d');
-      g.fillStyle = '#3b4a33';
+      g.fillStyle = '#5f9a47';
       g.fillRect(0, 0, 1024, 1024);
       // sea
       const t = mp.structures.terrain;
@@ -237,9 +237,9 @@ export class Hud {
         for (let x = 0; x < 1024; x += 2) {
           const h = t.heightAt(x - 512, y - 512);
           let col = null;
-          if (h < 0.1) col = [46, 104, 128];
-          else if (h < 2.6) col = [174, 160, 118];
-          else if (h > 55) col = [96, 104, 86];
+          if (h < 0.1) col = [63, 150, 214];
+          else if (h < 2.6) col = [240, 216, 150];
+          else if (h > 55) col = [196, 164, 120];
           if (!col) continue;
           for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) {
             const k = ((y + dy) * 1024 + x + dx) * 4;

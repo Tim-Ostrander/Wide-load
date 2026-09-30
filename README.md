@@ -24,15 +24,41 @@ and fines.
 
 ## Play
 
-Open `index.html` through any static web server (ES modules need `http://`):
+**On claude.ai:** the published artifact. Solo works for anyone who can open it;
+co-op connects signed-in viewers through the page's `room` capability.
+
+**Anywhere else (no accounts):** host the static build and share the crew
+password. The lobby asks for it; solo needs none.
 
 ```sh
-npm run serve        # http://localhost:8765
+npm run build        # writes dist/ (a complete static site)
+npm run serve        # dev server at http://localhost:8765
 ```
 
-Solo play works anywhere. Online co-op (up to 4) uses the Claude Artifact
-`room` capability, so it works when the game is published as a Claude
-artifact and players open it on claude.ai while signed in.
+Hosting options for `dist/`:
+
+- **GitHub Pages:** `.github/workflows/pages.yml` deploys `main`. One-time
+  setup: Settings → Pages → Source: GitHub Actions. Pages needs a public repo,
+  or GitHub Pro for a private one.
+- **Cloudflare Pages / Netlify / Vercel:** connect the repo (private is fine)
+  with build command `node tools/build-web.mjs dist` and output folder `dist`.
+- **itch.io or Netlify Drop:** every push builds a `wide-load-web` artifact in
+  GitHub Actions; download it and upload the folder.
+
+### Crew password
+
+Web co-op is gated by one shared password. Only a salted PBKDF2 hash ships in
+the code (`src/net/crewkey.js`). To change it:
+
+```sh
+node tools/set-password.mjs "new-password"    # or omit to generate one
+```
+
+The password picks the room namespace and encrypts WebRTC signaling. Public
+Nostr relays only introduce players to each other (via
+[Trystero](https://github.com/dmotz/trystero), vendored in `vendor/`); game
+traffic then flows directly between browsers. It's a casual gate for a friends'
+game, not account security.
 
 ### Controls
 
@@ -51,9 +77,10 @@ artifact and players open it on claude.ai while signed in.
 
 ## How it's built
 
-Plain ES modules, no build step. three.js r169 renders; cannon-es 0.20 runs the
-physics. Both load from jsDelivr (`src/lib.js`). Every model, texture and sound is
-generated in code.
+Plain ES modules; the only build step wraps `index.html` in a document for
+static hosts. three.js r169 renders with cel shading and a depth-based ink
+outline pass; cannon-es 0.20 runs the physics. Both load from jsDelivr
+(`src/lib.js`). Every model, texture and sound is generated in code.
 
 ```
 src/
@@ -71,6 +98,8 @@ src/
   items.js           carryable items (host-simulated)
   player.js          crew avatar and the local character controller
   net/session.js     solo and room sessions
+  net/mesh.js        the same room API over WebRTC, for password co-op
+  render/            cel shading ramp and the ink-outline pass
   ui/hud.js          HUD, minimap, toasts
   audio.js           procedural WebAudio
 ```
@@ -98,6 +127,7 @@ npm install
 npm run test:smoke        # boots the page, screenshots the title screen
 npm run test:playthrough  # a bot clears every obstacle and releases Dolores
 npm run test:coop         # two tabs over a fake room: host, join, hand over the rig
+CREW_PW=... npm run test:coop-web  # the same over real WebRTC through a local Nostr relay
 ```
 
 The tests route the CDN imports to `node_modules` and use Chromium from

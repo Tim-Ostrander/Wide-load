@@ -27,7 +27,8 @@ export async function startServer(port = 8765) {
 export async function launch({ width = Number(process.env.W || 1280), height = Number(process.env.H || 720) } = {}) {
   const browser = await chromium.launch({
     executablePath: '/opt/pw-browsers/chromium',
-    args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],
+    // real IPs instead of mDNS host candidates so WebRTC connects between local tabs
+    args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--disable-features=WebRtcHideLocalIpsWithMdns'],
   });
   const context = await browser.newContext({ viewport: { width, height } });
   await context.route(/https:\/\/(cdn\.jsdelivr\.net|fonts\.googleapis\.com|fonts\.gstatic\.com)\/.*/, async (route) => {
