@@ -179,13 +179,15 @@ try {
   log('at town', await st());
   console.log(await snap('b_town'));
   }
-  const end = await H.ev(() => window.__wl.game.world.road.count - 24);
+  const end = await H.ev(() => window.__wl.game.world.road.count - 22);
   await driveTo(end, 12);
   log('at ramp', await st());
   const rel = await H.ev(() => {
     const g = window.__wl.game, b = window.__bot;
     b.to(b.anchor('tankGate').pos);
-    return { c: b.cands(), use: b.use('release') };
+    const tc = g.rig.toWorld('trailer', [0, 2, -0.2]);
+    const rz = g.structures.spots.release.p;
+    return { c: b.cands(), use: b.use('release'), dist: Math.hypot(tc.x - rz.x, tc.z - rz.z) };
   });
   log('release', JSON.stringify(rel));
   await page.waitForTimeout(6000);

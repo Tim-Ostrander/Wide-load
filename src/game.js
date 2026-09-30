@@ -968,7 +968,7 @@ export class Game {
           const d = a.pos.distanceTo(pos);
           const rz = S.spots.release.p;
           const tankC = rig.toWorld('trailer', TRAILER.tank.center);
-          const inZone = Math.hypot(tankC.x - rz.x, tankC.z - rz.z) < 10;
+          const inZone = Math.hypot(tankC.x - rz.x, tankC.z - rz.z) < 13;
           if (d < 3.2 && inZone && !W.rel) {
             const stopped = Math.abs(rig.speed) < 1;
             add('e', d, { id: 'release', label: stopped ? 'Release Dolores!' : 'Stop the rig to release Dolores', disabled: !stopped, hold: 2, anim: 'wave', run: () => this.session.act('W', 'release') });
@@ -1308,7 +1308,7 @@ export class Game {
       { i: P.washout, done: at > P.washout + 8, title: 'The road is washed out', detail: 'Carry planks from the pile and lay them across the gap under both wheel tracks.' },
       { i: P.hairpins, done: at > hp1, title: 'Switchbacks', detail: 'Take it slow. A crewmate in the tiller seat can steer the trailer wheels; the driver can toggle auto-steer with X.' },
       { i: P.town, done: at > P.town + 60, title: 'Gull Harbor', detail: 'Narrow streets. Every mailbox you hit is a fine.' },
-      { i: r.count - 22, done: false, title: 'Release Dolores at the boat ramp', detail: 'Stop with the tank in the yellow ring, then hold E at the back of the tank.' },
+      { i: r.count - 22, done: false, title: 'Release Dolores at the boat ramp', detail: 'Stop with the tank by the yellow ring, then hold E at the back of the tank.' },
     ];
     const next = steps.find((x) => !x.done && x.i >= at - 40) || steps[steps.length - 1];
     return { title: next.title, detail: next.detail, dist: Math.max(0, Math.round((next.i - at) * r.ds)) };
