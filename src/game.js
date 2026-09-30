@@ -672,8 +672,9 @@ export class Game {
       focus.y += 3.2;
       heading = yawOf(rig.truck.quaternion);
       if (this.player.seat === 'tiller') {
-        heading = yawOf(rig.trailer.quaternion) + Math.PI;
-        rig.toWorld('trailer', [0, 3, -7], focus);
+        // look forward from behind the trailer: D pushes the back end right on screen
+        heading = yawOf(rig.trailer.quaternion);
+        rig.toWorld('trailer', [0, 3, -5], focus);
       }
       this.cam.setMode('rig', 24);
     } else {

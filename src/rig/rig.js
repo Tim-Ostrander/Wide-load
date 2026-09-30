@@ -277,7 +277,7 @@ export class Rig {
       const w = this.trailerVeh.wheelInfos[k];
       this.trailerVeh.setBrake((c.handbrake ? brake : brake * 0.8) + this._flatDrag(w), k);
     }
-    if (hasFuel && Math.abs(c.throttle) > 0.01) st.fuel = Math.max(0, st.fuel - Math.abs(c.throttle) * dt * 0.085);
+    if (hasFuel && Math.abs(c.throttle) > 0.01) st.fuel = Math.max(0, st.fuel - Math.abs(c.throttle) * dt * 0.13);
     else if (hasFuel) st.fuel = Math.max(0, st.fuel - dt * 0.004);
     this.rpm = damp(this.rpm, hasFuel ? 0.18 + Math.abs(c.throttle) * 0.6 + Math.min(1, Math.abs(kmh) / 40) * 0.25 : 0, 4, dt);
 
