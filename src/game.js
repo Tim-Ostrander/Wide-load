@@ -692,7 +692,9 @@ export class Game {
     if (this.hud) this.hud.update(this._hudModel());
     if (this.audio) this.audio.update(dt, this._audioModel());
     if (window.__WL_DEBUG && this.onDebugFrame) this.onDebugFrame(dt);
-    this.renderer.render(this.scene, this.camera);
+    // tests can skip frames to run the simulation faster than the renderer
+    this._frameNo = (this._frameNo || 0) + 1;
+    if (!this.renderEvery || this._frameNo % this.renderEvery === 0) this.renderer.render(this.scene, this.camera);
   }
 
   _syncLocalSeat() {

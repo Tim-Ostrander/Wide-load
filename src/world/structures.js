@@ -376,9 +376,9 @@ export class Structures {
     mb.box(8.6, 0.3, 7.6, 0x2c5c46, [shop.x, y0 + 3.5, shop.z], [0, f.yaw, 0]);
     this._box([8, 3.4, 7], new THREE.Vector3(shop.x, y0 + 1.7, shop.z), f.yaw);
     // canopy + pump island
-    const pump = f.at(-15, 0, 0);
+    const pump = f.at(-11.5, 0, 0);
     mb.box(0.3, 4.8, 0.3, 0xdedede, [pump.x, y0 + 2.4, pump.z]);
-    const canopy = f.at(-15, 0, 0);
+    const canopy = f.at(-11.5, 0, 0);
     mb.box(9, 0.5, 10, 0x2c5c46, [canopy.x, y0 + 5.2, canopy.z], [0, f.yaw, 0]);
     mb.box(9.1, 0.2, 10.1, PAINT.yellow, [canopy.x, y0 + 4.9, canopy.z], [0, f.yaw, 0]);
     mb.box(1.6, 0.25, 3, CONCRETE, [pump.x, y0 + 0.12, pump.z], [0, f.yaw, 0]);

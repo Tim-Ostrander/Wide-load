@@ -32,7 +32,7 @@ export class Input {
       this.buttons &= ~(1 << e.button);
     });
     addEventListener('mousemove', (e) => {
-      if (this.locked || this.buttons & 4 || this.buttons & 2) {
+      if (this.locked || this.buttons) {
         this.mouseDX += e.movementX || 0;
         this.mouseDY += e.movementY || 0;
       }

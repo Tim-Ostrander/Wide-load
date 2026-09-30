@@ -10,6 +10,7 @@ await page.evaluate(() => {
   const g = window.__wl.game;
   g.simSpeed = Number(window.__FAST || 6);
   g.maxSteps = 60;
+  g.renderEvery = 8;
 });
 const H = {
   async ev(fn, arg) { return page.evaluate(fn, arg); },
@@ -18,6 +19,13 @@ const H = {
   },
 };
 const log = (...a) => console.log('[bot]', ...a);
+const snap = async (name) => {
+  await page.evaluate(() => { window.__wl.game.renderEvery = 1; });
+  await page.waitForTimeout(400);
+  const f = await shot(page, name);
+  await page.evaluate(() => { window.__wl.game.renderEvery = 8; });
+  return f;
+};
 // helpers inside the page
 await page.evaluate(() => {
   const g = window.__wl.game, r = g.world.road;
@@ -59,7 +67,7 @@ try {
   log('cut', JSON.stringify(await H.ev(() => window.__bot.use('cut'))));
   await page.waitForTimeout(400);
   log('tree', await H.ev(() => window.__wl.game.W.ob.tree));
-  console.log(await shot(page, 'b_tree'));
+  console.log(await snap('b_tree'));
   // 3. power lines: stow chainsaw, take hot stick, hook at pole
   await H.ev(() => window.__bot.to(window.__bot.anchor('toolbox').pos));
   log('stow saw', JSON.stringify(await H.ev(() => window.__bot.use('stow'))));
@@ -82,7 +90,7 @@ try {
   await page.waitForTimeout(2500);
   await driveTo(P.overpass + 28, 11);
   log('after overpass', await st());
-  console.log(await shot(page, 'b_overpass'));
+  console.log(await snap('b_overpass'));
   await H.ev(() => window.__wl.game.session.act('R', 'bed'));
   // 5. station: fuel at pump
   await driveTo(P.station + 2, 18);
@@ -112,7 +120,7 @@ try {
   log('bridge state', JSON.stringify(await H.ev(() => window.__wl.game.W.ob.br)));
   await driveTo(P.bridge + 30, 16);
   log('after bridge', await st(), JSON.stringify(await H.ev(() => window.__wl.game.W.ob.br)));
-  console.log(await shot(page, 'b_bridge'));
+  console.log(await snap('b_bridge'));
   // 7. washout planks
   await driveTo(P.washout - 24, 18);
   log('at washout', await st());
@@ -133,11 +141,11 @@ try {
   }
   await driveTo(P.washout + 30, 12);
   log('after washout', await st());
-  console.log(await shot(page, 'b_washout'));
+  console.log(await snap('b_washout'));
   // 8. switchbacks and town
   await driveTo(P.town, 14);
   log('at town', await st());
-  console.log(await shot(page, 'b_town'));
+  console.log(await snap('b_town'));
   const end = await H.ev(() => window.__wl.game.world.road.count - 24);
   await driveTo(end, 12);
   log('at ramp', await st());
@@ -149,7 +157,7 @@ try {
   log('release', JSON.stringify(rel));
   await page.waitForTimeout(6000);
   log('final', await st());
-  console.log(await shot(page, 'b_end'));
+  console.log(await snap('b_end'));
 } catch (e) {
   console.log('ERROR', e.message);
 }
