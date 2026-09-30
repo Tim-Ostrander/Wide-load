@@ -11,7 +11,7 @@ make it.
 |---|---|
 | Fallen tree | Take the chainsaw from the truck's toolbox and cut the log |
 | Low power lines | Hook the wires higher at a pole with the hot stick, or ride on top of the tank and lift them by hand as the rig passes |
-| Rail bridge, 14'-5" clearance | Lower the trailer bed (B) and creep under at 12 km/h |
+| Rail bridge, 14'-9" clearance | Lower the trailer bed (B) and creep under at 12 km/h |
 | Gas station and water tower | Refuel at the pump; park the tank under the spout to refill Dolores |
 | Weak bridge (20 t limit) | Carry support posts into the creek and wedge at least 3 of 4 under the deck |
 | Washout | Carry planks and lay them across the gap under both wheel tracks |

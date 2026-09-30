@@ -137,7 +137,7 @@ export class Terrain {
 
     // features
     const ov = r.places.overpass;
-    this.features.overpass = { i: ov, clearance: 4.4, deck: 1.1, h: h[ov] };
+    this.features.overpass = { i: ov, clearance: 4.5, deck: 1.1, h: h[ov] };
     this.features.bridge = { i: br, h: bh, bed: bh - 5.4 };
     const wi = r.places.washout;
     this.features.washout = { i: wi, h: h[wi], depth: 3.4, x: r.x[wi], z: r.z[wi], tx: r.tx[wi], tz: r.tz[wi] };
