@@ -9,7 +9,7 @@ import { G, staticBox } from '../physics.js';
 import { CREEK_PATH, coastX } from './terrain.js';
 import { PAINT } from '../rig/models.js';
 
-const WOOD = 0x7a5536, WOOD_DARK = 0x5a3d26, STONE = 0x8d877c, CONCRETE = 0xa7a39a, ROOF = 0x6b3a2e;
+const WOOD = 0xa8743f, WOOD_DARK = 0x7a5030, STONE = 0xb0a898, CONCRETE = 0xc9c4ba, ROOF = 0xd0533a;
 
 /** Frame at road sample i: map (lat, y, along) to world. */
 function frame(road, i) {
@@ -206,7 +206,7 @@ export class Structures {
     // wires: 3 conductors, offsets along the road
     this.wireGroup = new THREE.Group();
     this._add(this.wireGroup);
-    this.wireMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.5 });
+    this.wireMat = new THREE.MeshBasicMaterial({ color: 0x1d1a24 });
     const catenary = (a, b, sag, n = 16) => {
       const pts = [];
       for (let k = 0; k <= n; k++) {
@@ -595,7 +595,7 @@ export class Structures {
     const r = this.road;
     const i0 = r.nearestIndex(-330, -70), i1 = r.nearestIndex(-392, -28);
     const rnd = mulberry32(501);
-    const houseColors = [0xd9c8a0, 0x9fb7c9, 0xe3a78a, 0xc8d6b0, 0xf0e2c2, 0xb49ac0];
+    const houseColors = [0xffd98a, 0x8fd0ff, 0xff9f7a, 0xb8e986, 0xfff2cf, 0xd3a8ff];
     const mb = new ModelBuilder();
     let side = 1;
     for (let i = i0 + 4, k = 0; i < i1 - 4; i += 11, k++) {
@@ -796,7 +796,8 @@ export class Structures {
         const slope = 1 - n.y;
         const u = rnd();
         if (slope > 0.3 || u < 0.08 * (1 - dens)) {
-          if (rnd() < 0.35) rocks.push([px, h, pz, 0.6 + rnd() * 1.8, rnd() * 6]);
+          // no rocks on sheer cliffs, where they read as floating against the haze
+          if (slope < 0.5 && rnd() < 0.12) rocks.push([px, h, pz, 1.0 + rnd() * 2.2, rnd() * 6]);
           continue;
         }
         if (u > dens * 0.85 + 0.08) continue;
@@ -822,25 +823,26 @@ export class Structures {
       this._add(mesh);
       return mesh;
     };
+    // chunky cartoon trees: foliage is white so the instance color tints it
     const pineM = new ModelBuilder();
-    pineM.cyl(0.18, 0.28, 2.2, 6, 0x5b3f29, [0, 1.1, 0]);
-    pineM.cone(2.2, 3.4, 7, 0xffffff, [0, 3.2, 0]);
-    pineM.cone(1.7, 2.9, 7, 0xffffff, [0, 4.8, 0]);
-    pineM.cone(1.1, 2.3, 7, 0xffffff, [0, 6.2, 0]);
-    // trunk keeps its color, foliage takes the instance tint (white base)
+    pineM.cyl(0.24, 0.34, 2.2, 7, 0x8a5a3a, [0, 1.1, 0]);
+    pineM.cone(2.5, 3.4, 9, 0xffffff, [0, 3.1, 0]);
+    pineM.cone(2.0, 3.0, 9, 0xffffff, [0, 4.7, 0]);
+    pineM.cone(1.35, 2.5, 9, 0xffffff, [0, 6.2, 0]);
     const pineGeo = pineM.geometry();
     const broadM = new ModelBuilder();
-    broadM.cyl(0.2, 0.3, 2.6, 6, 0x6a4a30, [0, 1.3, 0]);
-    broadM.sphere(2.1, 0xffffff, [0, 3.9, 0], [1, 0.85, 1], 1);
-    broadM.sphere(1.4, 0xffffff, [1.1, 3.4, 0.5], [1, 0.8, 1], 0);
+    broadM.cyl(0.26, 0.36, 2.6, 7, 0x8a5a3a, [0, 1.3, 0]);
+    broadM.sphere(2.2, 0xffffff, [0, 4.0, 0], [1, 0.92, 1], 2);
+    broadM.sphere(1.5, 0xffffff, [1.35, 3.35, 0.4], [1, 0.9, 1], 2);
+    broadM.sphere(1.4, 0xffffff, [-1.2, 3.5, -0.5], [1, 0.9, 1], 2);
     const broadGeo = broadM.geometry();
-    const pal = [0x3f6b34, 0x355c2b, 0x4a7a3a, 0x2f5530];
-    const pal2 = [0x6f8f3a, 0x5d8a3a, 0x86984a, 0x4d7a33, 0x9a8f3e];
+    const pal = [0x2f9a55, 0x3aa85f, 0x278a4c, 0x45b068];
+    const pal2 = [0x6fcf4a, 0x8ad84e, 0xa8d94a, 0x5cbf45, 0xf0b43a];
     this.pines = mkInst(pineGeo, pines, (c, k) => c.setHex(pal[k % pal.length]), 0, (sc, s) => sc.set(s, s * (0.9 + (s % 0.2)), s));
     this.broads = mkInst(broadGeo, broad, (c, k) => c.setHex(pal2[k % pal2.length]), 0, (sc, s) => sc.set(s, s, s));
-    const rockGeo = colorize(new THREE.IcosahedronGeometry(1, 0).toNonIndexed(), 0xffffff);
+    const rockGeo = colorize(new THREE.IcosahedronGeometry(1, 1).toNonIndexed(), 0xffffff);
     rockGeo.computeVertexNormals();
-    this.rocks = mkInst(rockGeo, rocks, (c, k) => c.setHex([0x8a8378, 0x7b746a, 0x968f83][k % 3]), 0.2, (sc, s) => sc.set(s * 1.3, s * 0.8, s));
+    this.rocks = mkInst(rockGeo, rocks, (c, k) => c.setHex([0xb3aba0, 0xa39b90, 0xc2bbb0][k % 3]), 0.2, (sc, s) => sc.set(s * 1.3, s * 0.8, s));
     // colliders for trees and rocks near the road so the rig can't cut corners through a forest
     let colliders = 0;
     for (const [x, y, z, s] of [...pines, ...broad]) {

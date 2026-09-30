@@ -8,7 +8,7 @@ import { SEATS } from './rig/rig.js';
 
 export const HAT_COLORS = [0xf5c518, 0xe8572a, 0x3fb6c9, 0x8bc34a, 0xe86fa8, 0xf3efe2];
 export const HAT_NAMES = ['Yellow', 'Orange', 'Teal', 'Lime', 'Pink', 'White'];
-const SKIN = [0xe0b48f, 0xb98563, 0x8a5a3c, 0xf1c9a5];
+const SKIN = [0xf2c29a, 0xc98f67, 0x9a6444, 0xffd6b5];
 
 function limb(len, w, color, bootColor) {
   const g = new THREE.Group();
@@ -60,7 +60,7 @@ export class Avatar {
     this.body = body;
     const tb = new ModelBuilder();
     tb.box(0.5, 0.62, 0.3, 0x2f4a73, [0, 0.3, 0]); // overalls
-    tb.box(0.54, 0.46, 0.34, 0xf7a21b, [0, 0.46, 0]); // hi-vis vest
+    tb.box(0.54, 0.46, 0.34, 0xff9a1f, [0, 0.46, 0]); // hi-vis vest
     tb.box(0.55, 0.05, 0.35, 0xe8e8e0, [0, 0.36, 0]);
     tb.box(0.55, 0.05, 0.35, 0xe8e8e0, [0, 0.54, 0]);
     tb.box(0.36, 0.16, 0.26, 0x2f4a73, [0, -0.02, 0]);
@@ -75,6 +75,7 @@ export class Avatar {
     hb.cyl(0.21, 0.23, 0.14, 10, hat, [0, 0.37, 0]);
     hb.box(0.46, 0.03, 0.46, hat, [0, 0.31, 0.02]);
     head.add(hb.mesh(flatMaterial()));
+    head.scale.setScalar(1.35); // big-headed cartoon crew
     body.add(head);
     this.head = head;
     this.armL = limb(0.62, 0.13, 0xf7a21b);
@@ -95,7 +96,7 @@ export class Avatar {
     });
     if (!local) {
       this.tag = nameSprite(name, hat);
-      this.tag.position.y = 2.35;
+      this.tag.position.y = 2.55;
       g.add(this.tag);
     }
     scene.add(g);

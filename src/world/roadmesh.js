@@ -1,36 +1,28 @@
 // The drivable road surface as a textured ribbon.
 import { THREE } from '../lib.js';
+import { toonMaterial } from '../render/toon.js';
 
 function roadTexture() {
   const c = document.createElement('canvas');
   c.width = 256;
   c.height = 512;
   const g = c.getContext('2d');
-  g.fillStyle = '#5b5750';
+  g.fillStyle = '#6a6873';
   g.fillRect(0, 0, 256, 512);
-  // grain
-  for (let k = 0; k < 9000; k++) {
-    const v = 70 + Math.random() * 60;
-    g.fillStyle = `rgba(${v},${v - 4},${v - 10},${0.25 + Math.random() * 0.3})`;
-    g.fillRect(Math.random() * 256, Math.random() * 512, 1 + Math.random() * 2, 1 + Math.random() * 2);
-  }
-  // patches
-  for (let k = 0; k < 14; k++) {
-    g.fillStyle = `rgba(40,38,35,${0.15 + Math.random() * 0.15})`;
+  // a few soft patches, no grain: flat cartoon asphalt
+  for (let k = 0; k < 8; k++) {
+    g.fillStyle = 'rgba(80,78,92,0.35)';
     g.beginPath();
-    g.ellipse(Math.random() * 256, Math.random() * 512, 10 + Math.random() * 30, 10 + Math.random() * 50, Math.random(), 0, Math.PI * 2);
+    g.ellipse(Math.random() * 256, Math.random() * 512, 16 + Math.random() * 30, 16 + Math.random() * 50, Math.random(), 0, Math.PI * 2);
     g.fill();
   }
-  // tyre tracks
-  g.fillStyle = 'rgba(35,33,30,0.25)';
-  for (const x of [52, 84, 172, 204]) g.fillRect(x, 0, 14, 512);
   // edge lines
-  g.fillStyle = '#e8e2cf';
-  g.fillRect(10, 0, 6, 512);
-  g.fillRect(240, 0, 6, 512);
+  g.fillStyle = '#fbf6e8';
+  g.fillRect(10, 0, 8, 512);
+  g.fillRect(238, 0, 8, 512);
   // centre dashes
-  g.fillStyle = '#e8b923';
-  g.fillRect(124, 0, 8, 250);
+  g.fillStyle = '#ffc928';
+  g.fillRect(123, 0, 10, 250);
   const tex = new THREE.CanvasTexture(c);
   tex.wrapS = THREE.ClampToEdgeWrapping;
   tex.wrapT = THREE.RepeatWrapping;
@@ -68,9 +60,8 @@ export function createRoadMesh(road, skip) {
   g.setIndex(idx);
   g.computeVertexNormals();
   g.computeBoundingSphere();
-  const mat = new THREE.MeshStandardMaterial({
+  const mat = toonMaterial({
     map: roadTexture(),
-    roughness: 0.92,
     polygonOffset: true,
     polygonOffsetFactor: -2,
     polygonOffsetUnits: -2,

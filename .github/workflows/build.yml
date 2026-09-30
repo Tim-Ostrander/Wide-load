@@ -1,0 +1,24 @@
+# Builds the static site on every push and pull request and keeps it as a
+# downloadable artifact ("wide-load-web"), ready for any static host.
+name: Build web
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check syntax
+        run: for f in $(find src tools tests -name '*.js' -o -name '*.mjs'); do node --check "$f"; done
+      - name: Build
+        run: node tools/build-web.mjs dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wide-load-web
+          path: dist

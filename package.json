@@ -6,13 +6,20 @@
   "type": "module",
   "scripts": {
     "serve": "node tools/devserver.mjs . 8765",
+    "build": "node tools/build-web.mjs dist",
+    "vendor": "echo \"export { joinRoom, selfId } from 'trystero';\" > /tmp/trystero-entry.mjs && esbuild /tmp/trystero-entry.mjs --bundle --format=esm --minify --target=es2020 --outfile=vendor/trystero.js",
+    "set-password": "node tools/set-password.mjs",
     "test:smoke": "node tests/smoke.mjs",
     "test:playthrough": "node tests/playthrough.mjs",
-    "test:coop": "node tests/coop.mjs"
+    "test:coop": "node tests/coop.mjs",
+    "test:coop-web": "WEB=1 node tests/coop.mjs"
   },
   "devDependencies": {
     "cannon-es": "0.20.0",
+    "esbuild": "0.25.10",
     "playwright": "1.55.0",
-    "three": "0.169.0"
+    "three": "0.169.0",
+    "trystero": "0.25.4",
+    "ws": "8.22.0"
   }
 }
