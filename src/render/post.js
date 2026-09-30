@@ -66,7 +66,7 @@ export class InkPass {
   }
 
   setSize() {
-    if (!this.enabled) return;
+    if (!this.target) return;
     const size = this.renderer.getDrawingBufferSize(new THREE.Vector2());
     this.target.setSize(size.x, size.y);
     this.material.uniforms.uTexel.value.set(1 / size.x, 1 / size.y);
@@ -74,7 +74,7 @@ export class InkPass {
   }
 
   render(scene, camera) {
-    if (!this.enabled) {
+    if (!this.enabled || !this.target) {
       this.renderer.render(scene, camera);
       return;
     }

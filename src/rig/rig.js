@@ -402,7 +402,8 @@ export class Rig {
     const jolt = this._jolt;
     const amp = Math.hypot(s.x, s.z * 0.6);
     const latAcc = Math.abs(this._latAcc || 0);
-    const stress = Math.max(0, amp - 0.75) * 7 + Math.max(0, jolt - 9) * 0.18 + Math.max(0, latAcc - 4.6) * 0.7;
+    // capped so one hard landing wears the straps but can't snap them all at once
+    const stress = Math.min(6, Math.max(0, amp - 0.75) * 7 + Math.min(3, Math.max(0, jolt - 9) * 0.18) + Math.max(0, latAcc - 4.6) * 0.7);
     this.stress = stress;
     this.stressParts = [amp, jolt, latAcc];
     if (stress > 0) {

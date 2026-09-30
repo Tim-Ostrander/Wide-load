@@ -95,6 +95,13 @@ function wireButtons() {
     setPaused(false);
   });
   $('#btn-mute').addEventListener('click', toggleMute);
+  const applyGfx = (fast) => {
+    game.setGraphics(fast);
+    $('#gfx-label').textContent = fast ? 'Graphics: Fast' : 'Graphics: Fancy';
+    store.set('fastGfx', fast);
+  };
+  $('#btn-gfx').addEventListener('click', () => applyGfx(!game.fastGfx));
+  if (store.get('fastGfx', false)) applyGfx(true);
   $('#btn-quit').addEventListener('click', quitToTitle);
   $('#btn-endquit').addEventListener('click', quitToTitle);
   $('#btn-lostquit').addEventListener('click', quitToTitle);

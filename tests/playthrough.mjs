@@ -169,8 +169,10 @@ try {
     log('plank', k, JSON.stringify(r));
     await page.waitForTimeout(300);
   }
+  await H.ev(() => { window.__apLog.length = 0; });
   await driveTo(P.washout + 30, 12);
   log('after washout', await st());
+  if (process.env.TRACE) log('trace', JSON.stringify(await H.ev(() => window.__apLog.map((x) => [x.t, x.i, x.kmh, x.sp, x.st.s]))));
   console.log(await snap('b_washout'));
   }
   if (on('town')) {

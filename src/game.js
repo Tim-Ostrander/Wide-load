@@ -198,6 +198,22 @@ export class Game {
     rig.placeOnRoad(this.startIndex);
   }
 
+  /** Fast mode drops the outline pass and shadows and renders at 1x. */
+  setGraphics(fast) {
+    this.fastGfx = fast;
+    const r = this.renderer;
+    this.ink.enabled = !fast && r.capabilities.isWebGL2;
+    r.setPixelRatio(fast ? 1 : Math.min(devicePixelRatio, 2));
+    if (r.shadowMap.enabled === fast) {
+      r.shadowMap.enabled = !fast;
+      this.scene.traverse((o) => {
+        const mats = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : [];
+        for (const m of mats) m.needsUpdate = true;
+      });
+    }
+    this.resize();
+  }
+
   resize() {
     const w = this.view.clientWidth, h = this.view.clientHeight;
     this.renderer.setSize(w, h);
