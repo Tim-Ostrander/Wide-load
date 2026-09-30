@@ -6,4 +6,5 @@ rm -rf "$dest"
 mkdir -p "$dest"
 cp index.html "$dest/"
 cp -r src "$dest/src"
+cp -r vendor "$dest/vendor"
 find "$dest" -type f | sed "s|^$dest/||" | sort
