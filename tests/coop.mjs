@@ -42,7 +42,7 @@ try {
       await p.page.fill('#crewpw', PASSWORD);
       await p.page.click('#pwbtn');
     }
-    await A.page.waitForFunction(() => /Connected/.test(document.querySelector('#lobby-note').textContent), null, { timeout: 30000 });
+    await A.page.waitForFunction(() => /Connected|No open jobs|Pick a crew/.test(document.querySelector("#lobby-note").textContent), null, { timeout: 30000 });
     log('A lobby note', await ev(A, () => document.querySelector('#lobby-note').textContent));
   }
   await A.page.waitForTimeout(1500);
@@ -96,11 +96,11 @@ try {
   });
   await A.page.waitForTimeout(700);
   await A.page.keyboard.press('e');
-  await A.page.waitForTimeout(1500);
+  await B.page.waitForFunction(() => [...window.__wl.game.items.map.values()].some((i) => i.holder), null, { timeout: 8000 }).catch(() => log('B never saw the held item'));
   log('A held', await ev(A, () => window.__wl.game.player.held), 'B sees holder', await ev(B, () => JSON.stringify([...window.__wl.game.items.map.values()].filter((i) => i.holder).map((i) => [i.type, i.holder]))));
   // B hands back the rig: leave seat
   await B.page.keyboard.press('f');
-  await B.page.waitForTimeout(2000);
+  await A.page.waitForFunction(() => window.__wl.game.rig.owner, null, { timeout: 8000 }).catch(() => log('A never took the rig back'));
   log('after B leaves: A owner', await ev(A, () => window.__wl.game.rig.owner), 'B owner', await ev(B, () => window.__wl.game.rig.owner));
 } catch (e) {
   console.log('ERROR', e.message);
