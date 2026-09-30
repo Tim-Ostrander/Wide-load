@@ -3,7 +3,8 @@ window.__startAutopilot = function (opts = {}) {
   const g = window.__wl.game, r = g.world.road, rig = g.rig, C = window.__wl.CANNON;
   if (opts.fast) { g.simSpeed = opts.fast; g.maxSteps = 40; }
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-  let idx = 0;
+  let idx = r.nearest(rig.truck.position.x, rig.truck.position.z, 60).i;
+  if (idx < 0) idx = 0;
   const log = (window.__apLog = []);
   let t0 = 0;
   g.autopilot = (h) => {

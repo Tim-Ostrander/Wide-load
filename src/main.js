@@ -69,6 +69,10 @@ async function boot() {
   await new Promise((r) => setTimeout(r, 10));
   game = new Game($('#view'), { session: new SoloSession(profile), hud, audio, name: profile.name, color: profile.color, mode: 'intro' });
   hud.onEnd = showEnd;
+  hud.onSay = (text) => game.sayText(text);
+  hud.onChatClosed = () => {
+    if (game.mode === 'play' && !game.paused) lockMouse();
+  };
   game.start();
   $('#loading').hidden = true;
   $('#menu').hidden = false;
@@ -111,6 +115,7 @@ function wireButtons() {
   });
   addEventListener('keydown', (e) => {
     if (e.target && e.target.tagName === 'INPUT') return;
+    if (hud.typing) return;
     if (e.code === 'Escape' && game.mode === 'play' && $('#end').hidden) setPaused(!game.paused);
     if (e.code === 'KeyM' && game.mode === 'play') toggleMute();
   });

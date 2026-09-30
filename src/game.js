@@ -799,7 +799,7 @@ export class Game {
         rem.lastSay = pr.say[0];
         if (!first) {
           av.say(String(pr.say[1]).slice(0, 40));
-          this.hud?.chat(String(pr.n || 'Crew').slice(0, 18), pr.c ?? 1, String(pr.say[1]).slice(0, 40));
+          this.hud?.chat(String(pr.n || 'Crew').slice(0, 18), pr.c ?? 1, String(pr.say[1]).slice(0, 80));
           this.audio?.play('radio');
         }
       }
@@ -1060,6 +1060,14 @@ export class Game {
     this.ping = [id, Math.round(hit.point.x * 10) / 10, Math.round(hit.point.y * 10) / 10, Math.round(hit.point.z * 10) / 10];
     this.fx.ping(hit.point, this.opts.color ?? 0);
     this.audio?.play('ping');
+  }
+
+  sayText(text) {
+    const id = ((this.say?.[0] || 0) % 999) + 1;
+    this.say = [id, text];
+    this.player.avatar.say(text.slice(0, 40));
+    this.hud?.chat(this.opts.name, this.opts.color ?? 0, text);
+    this.audio?.play('radio');
   }
 
   _sayQuick(k) {

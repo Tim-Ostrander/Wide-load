@@ -152,6 +152,9 @@
   #seathint span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
   #quickchat { left: 50%; top: 50%; transform: translate(-50%, -50%); background: var(--panel); border-radius: 10px; padding: 12px 14px; display: grid; gap: 6px; min-width: 220px; }
   #quickchat div { display: flex; gap: 10px; align-items: center; font-weight: 700; }
+  #chatform { left: 16px; bottom: 250px; pointer-events: auto; width: 320px; }
+  #chatinput { width: 100%; box-sizing: border-box; background: var(--panel); color: var(--ink); border: 2px solid var(--hivis); border-radius: 7px; padding: 8px 10px; font: 600 14px var(--ui); }
+  #chatinput:focus { outline: none; }
   #waiting { left: 50%; top: 42%; transform: translate(-50%, -50%); font: 800 18px/1.3 var(--ui); background: var(--panel); padding: 14px 18px; border-radius: 10px; text-align: center; max-width: calc(100vw - 32px); box-sizing: border-box; }
   #clicklook { left: 50%; top: 58%; transform: translateX(-50%); font-size: 13px; background: var(--panel); padding: 6px 12px; border-radius: 6px; white-space: nowrap; }
 
@@ -245,6 +248,7 @@
         <h4>Crew</h4>
         <span class="keys"><span class="key">G</span></span><span>Ping the spot you're looking at</span>
         <span class="keys"><span class="key">T</span></span><span>Quick chat, then 1–6</span>
+        <span class="keys"><span class="key">Enter</span></span><span>Type a message to the crew</span>
         <span class="keys"><span class="key">V</span></span><span>Wave</span>
         <span class="keys"><span class="key">Esc</span></span><span>Pause: call a tow, restart, sound</span>
       </div>
@@ -278,6 +282,7 @@
   <div id="prompt"></div>
   <div id="seathint"></div>
   <div id="quickchat" hidden></div>
+  <form id="chatform" hidden autocomplete="off"><input id="chatinput" maxlength="80" placeholder="Say something to the crew, then Enter" aria-label="Chat message"></form>
   <div id="waiting" hidden>Connecting to the host…</div>
   <div id="clicklook" hidden>Click the view to look around with the mouse</div>
 </div>

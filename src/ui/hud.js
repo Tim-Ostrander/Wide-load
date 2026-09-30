@@ -46,6 +46,44 @@ export class Hud {
     this.seat = null;
     this.seatHint(null);
     this.onEnd = null;
+    this.onSay = null;
+    this.chatForm = $('#chatform');
+    this.chatInput = $('#chatinput');
+    addEventListener('keydown', (e) => {
+      if (e.code !== 'Enter' || this.root.hidden) return;
+      if (!this.typing) {
+        e.preventDefault();
+        this.openChat();
+      }
+    });
+    this.chatForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const text = this.chatInput.value.replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028-\u202e\u2060-\u206f\ufeff]/g, '').trim().slice(0, 80);
+      if (text && this.onSay) this.onSay(text);
+      this.closeChat();
+    });
+    this.chatInput.addEventListener('keydown', (e) => {
+      if (e.code === 'Escape') {
+        e.stopPropagation();
+        this.closeChat();
+      }
+    });
+    this.chatInput.addEventListener('blur', () => this.closeChat());
+  }
+
+  openChat() {
+    this.typing = true;
+    this.chatForm.hidden = false;
+    this.chatInput.value = '';
+    this.chatInput.focus();
+  }
+
+  closeChat() {
+    if (!this.typing) return;
+    this.typing = false;
+    this.chatForm.hidden = true;
+    this.chatInput.blur();
+    this.onChatClosed?.();
   }
 
   show(v) {
