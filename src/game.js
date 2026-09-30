@@ -209,6 +209,7 @@ export class Game {
 
   _frame(now) {
     const dt = Math.max(0, Math.min(0.1, (now - this.last) / 1000));
+    if (window.__WL_DEBUG) this._fps = Math.round(1000 / Math.max(1, now - this.last));
     this.last = now;
     try {
       if (!(this.paused && this.session.solo)) {
@@ -700,8 +701,12 @@ export class Game {
 
   _syncLocalSeat() {
     const p = this.player;
-    const mySeat = this.seatOf(this.session.me);
-    if (p.seat && mySeat !== p.seat && performance.now() - (this._seatClaimAt || 0) > 1500) this._leaveSeat(true);
+    if (!p.seat) return;
+    const W = this.ws();
+    const holder = W?.seats[SEAT_CODES[p.seat]];
+    // lose the seat only if someone else has it, or the host never confirmed our claim
+    const waited = performance.now() - (this._seatClaimAt || 0);
+    if ((holder && holder !== this.session.me && waited > 600) || (!holder && waited > 5000)) this._leaveSeat(true);
   }
 
   _presencePos(pr) {

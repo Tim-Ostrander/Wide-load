@@ -10,6 +10,15 @@ const B = await openPage(context, { fakeRoom: true, init });
 const ready = (p) => p.page.waitForFunction(() => window.__wl && window.__wl.startSolo, null, { timeout: 120000 });
 await ready(A);
 await ready(B);
+// software rendering is slow; skip most frames so the simulation and network run at speed
+for (const p of [A, B]) await p.page.evaluate(() => { window.__wl.game.renderEvery = 12; });
+const shotR = async (p, name) => {
+  await p.page.evaluate(() => { window.__wl.game.renderEvery = 1; });
+  await p.page.waitForTimeout(700);
+  const f = await shot(p.page, name);
+  await p.page.evaluate(() => { window.__wl.game.renderEvery = 12; });
+  return f;
+};
 const log = (...a) => console.log('[coop]', ...a);
 const ev = (p, fn, arg) => p.page.evaluate(fn, arg);
 try {
@@ -28,8 +37,8 @@ try {
   await A.page.waitForTimeout(2000);
   log('A sees', await ev(A, () => ({ remotes: window.__wl.game.remotes.size, size: window.__wl.game.session.lastSize })));
   log('B sees', await ev(B, () => ({ remotes: window.__wl.game.remotes.size, size: window.__wl.game.session.lastSize, owner: window.__wl.game.rig.owner })));
-  console.log(await shot(A.page, 'c_A1'));
-  console.log(await shot(B.page, 'c_B1'));
+  console.log(await shotR(A, 'c_A1'));
+  console.log(await shotR(B, 'c_B1'));
   // B takes the driver's seat
   await ev(B, () => {
     const g = window.__wl.game;
@@ -38,7 +47,12 @@ try {
   });
   await B.page.waitForTimeout(600);
   await B.page.keyboard.press('f');
-  await B.page.waitForTimeout(2500);
+  for (let k = 0; k < 10; k++) {
+    await B.page.waitForTimeout(300);
+    const a = await ev(A, () => ({ ro: window.__wl.game.W.ro, d: window.__wl.game.W.seats.d, own: window.__wl.game.rig.owner, t: Math.round(performance.now()) }));
+    const b = await ev(B, () => ({ ro: window.__wl.game.ws()?.ro, seat: window.__wl.game.player.seat, own: window.__wl.game.rig.owner, me: window.__wl.game.session.me, fps: window.__wl.game._fps }));
+    log('handoff', k, JSON.stringify(a), JSON.stringify(b));
+  }
   log('seats', await ev(A, () => JSON.stringify(window.__wl.game.W.seats)), 'B owner', await ev(B, () => window.__wl.game.rig.owner), 'A owner', await ev(A, () => window.__wl.game.rig.owner));
   // A walks onto the trailer deck to ride along
   await ev(A, () => {
@@ -53,8 +67,8 @@ try {
   const pb = await ev(B, () => ({ truck: window.__wl.game.rig.truck.position, kmh: window.__wl.game.rig.speed * 3.6, remote: [...window.__wl.game.remotes.values()].map((r) => r.avatar.group.position) }));
   log('A view', JSON.stringify(pa));
   log('B view', JSON.stringify(pb));
-  console.log(await shot(A.page, 'c_A2'));
-  console.log(await shot(B.page, 'c_B2'));
+  console.log(await shotR(A, 'c_A2'));
+  console.log(await shotR(B, 'c_B2'));
   // A (host) picks the chainsaw via toolbox; B sees the item held
   await ev(A, () => {
     const g = window.__wl.game;
