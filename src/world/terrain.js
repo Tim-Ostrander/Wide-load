@@ -112,36 +112,57 @@ export class Terrain {
     const a = r.places.hairpins, b = r.nearestIndex(-322, -62);
     const ha = h[a], hb = h[b];
     for (let i = a; i <= b; i++) h[i] = lerp(ha, hb, (i - a) / (b - a));
-    // depot yard flat
+    // level sections are locked; the grade limiter works around them
+    const lock = new Uint8Array(r.count);
+    const level = (i0, i1, value) => {
+      for (let i = Math.max(0, i0); i <= Math.min(r.count - 1, i1); i++) {
+        h[i] = value;
+        lock[i] = 1;
+      }
+    };
     const dep = r.places.depot;
-    for (let i = 0; i <= dep + 30; i++) h[i] = h[dep + 30];
-    // bridge span flat
+    level(0, dep + 30, h[dep + 30]);
     const br = r.places.bridge;
     const bh = (h[br - 20] + h[br + 20]) / 2;
-    for (let i = br - 20; i <= br + 20; i++) h[i] = bh;
-    // coast: keep the road above the sea until the ramp
+    level(br - 18, br + 18, bh);
+    // the underpass is level so the clearance is the same all the way under
+    const ovI = r.places.overpass;
+    level(ovI - 18, ovI + 18, h[ovI]);
+    const wi = r.places.washout;
+    level(wi - 9, wi + 9, h[wi]);
+    // coast: keep the road above the sea until the ramp, then down into the water
     const hb0 = r.nearestIndex(-398, -24);
-    for (let i = 0; i < r.count; i++) h[i] = Math.max(h[i], 1.7);
+    for (let i = 0; i < r.count; i++) if (!lock[i]) h[i] = Math.max(h[i], 1.7);
     for (let i = hb0; i < r.count; i++) {
       const t = (i - hb0) / (r.count - 1 - hb0);
-      h[i] = lerp(1.7, -2.6, smoothstep(0.35, 1, t));
+      h[i] = lerp(1.7, -2.2, smoothstep(0.2, 1, t));
+      lock[i] = 1;
     }
-    // grade limit
+    // grade limit around the locked sections
     const g = 0.095 * r.ds;
-    for (let pass = 0; pass < 4; pass++) {
-      for (let i = 1; i < r.count; i++) h[i] = clamp(h[i], h[i - 1] - g, h[i - 1] + g);
-      for (let i = r.count - 2; i >= 0; i--) h[i] = clamp(h[i], h[i + 1] - g, h[i + 1] + g);
+    for (let pass = 0; pass < 6; pass++) {
+      for (let i = 1; i < r.count; i++) if (!lock[i]) h[i] = clamp(h[i], h[i - 1] - g, h[i - 1] + g);
+      for (let i = r.count - 2; i >= 0; i--) if (!lock[i]) h[i] = clamp(h[i], h[i + 1] - g, h[i + 1] + g);
     }
-    r._smoothArray(h, 4);
-    for (let i = br - 14; i <= br + 14; i++) h[i] = bh;
+    const copy = Float32Array.from(h);
+    for (let i = 0; i < r.count; i++) {
+      if (lock[i]) continue;
+      let sum = 0, n = 0;
+      for (let k = -4; k <= 4; k++) {
+        const j = i + k;
+        if (j < 0 || j >= r.count) continue;
+        sum += copy[j];
+        n++;
+      }
+      h[i] = sum / n;
+    }
+    const bh2 = bh;
 
     // features
     const ov = r.places.overpass;
     this.features.overpass = { i: ov, clearance: 4.4, deck: 1.1, h: h[ov] };
-    this.features.bridge = { i: br, h: bh, bed: bh - 5.4 };
-    const wi = r.places.washout;
+    this.features.bridge = { i: br, h: bh2, bed: bh2 - 5.4 };
     this.features.washout = { i: wi, h: h[wi], depth: 3.4, x: r.x[wi], z: r.z[wi], tx: r.tx[wi], tz: r.tz[wi] };
-    for (let i = wi - 8; i <= wi + 8; i++) h[i] = h[wi];
     const st = r.places.station;
     const stPos = r.point(st, -24);
     this.features.station = { i: st, x: stPos.x, z: stPos.z, h: h[st] };

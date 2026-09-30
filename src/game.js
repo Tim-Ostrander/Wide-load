@@ -209,6 +209,7 @@ export class Game {
 
   _frame(now) {
     const dt = Math.max(0, Math.min(0.1, (now - this.last) / 1000));
+    if (window.__WL_DEBUG) this._fps = Math.round(1000 / Math.max(1, now - this.last));
     this.last = now;
     try {
       if (!(this.paused && this.session.solo)) {
@@ -672,8 +673,9 @@ export class Game {
       focus.y += 3.2;
       heading = yawOf(rig.truck.quaternion);
       if (this.player.seat === 'tiller') {
-        heading = yawOf(rig.trailer.quaternion) + Math.PI;
-        rig.toWorld('trailer', [0, 3, -7], focus);
+        // look forward from behind the trailer: D pushes the back end right on screen
+        heading = yawOf(rig.trailer.quaternion);
+        rig.toWorld('trailer', [0, 3, -5], focus);
       }
       this.cam.setMode('rig', 24);
     } else {
@@ -699,8 +701,12 @@ export class Game {
 
   _syncLocalSeat() {
     const p = this.player;
-    const mySeat = this.seatOf(this.session.me);
-    if (p.seat && mySeat !== p.seat && performance.now() - (this._seatClaimAt || 0) > 1500) this._leaveSeat(true);
+    if (!p.seat) return;
+    const W = this.ws();
+    const holder = W?.seats[SEAT_CODES[p.seat]];
+    // lose the seat only if someone else has it, or the host never confirmed our claim
+    const waited = performance.now() - (this._seatClaimAt || 0);
+    if ((holder && holder !== this.session.me && waited > 600) || (!holder && waited > 5000)) this._leaveSeat(true);
   }
 
   _presencePos(pr) {
@@ -967,7 +973,7 @@ export class Game {
           const d = a.pos.distanceTo(pos);
           const rz = S.spots.release.p;
           const tankC = rig.toWorld('trailer', TRAILER.tank.center);
-          const inZone = Math.hypot(tankC.x - rz.x, tankC.z - rz.z) < 10;
+          const inZone = Math.hypot(tankC.x - rz.x, tankC.z - rz.z) < 13;
           if (d < 3.2 && inZone && !W.rel) {
             const stopped = Math.abs(rig.speed) < 1;
             add('e', d, { id: 'release', label: stopped ? 'Release Dolores!' : 'Stop the rig to release Dolores', disabled: !stopped, hold: 2, anim: 'wave', run: () => this.session.act('W', 'release') });
@@ -1307,7 +1313,7 @@ export class Game {
       { i: P.washout, done: at > P.washout + 8, title: 'The road is washed out', detail: 'Carry planks from the pile and lay them across the gap under both wheel tracks.' },
       { i: P.hairpins, done: at > hp1, title: 'Switchbacks', detail: 'Take it slow. A crewmate in the tiller seat can steer the trailer wheels; the driver can toggle auto-steer with X.' },
       { i: P.town, done: at > P.town + 60, title: 'Gull Harbor', detail: 'Narrow streets. Every mailbox you hit is a fine.' },
-      { i: r.count - 22, done: false, title: 'Release Dolores at the boat ramp', detail: 'Stop with the tank in the yellow ring, then hold E at the back of the tank.' },
+      { i: r.count - 22, done: false, title: 'Release Dolores at the boat ramp', detail: 'Stop with the tank by the yellow ring, then hold E at the back of the tank.' },
     ];
     const next = steps.find((x) => !x.done && x.i >= at - 40) || steps[steps.length - 1];
     return { title: next.title, detail: next.detail, dist: Math.max(0, Math.round((next.i - at) * r.ds)) };

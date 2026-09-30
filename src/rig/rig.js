@@ -23,7 +23,7 @@ export const TRAILER = {
   mass: 16000,
   groundY: 0.85,
   kingpinUp: new CANNON.Vec3(0, 0.57, 7.4),
-  bedDrop: 0.5,
+  bedDrop: 0.55,
   wheels: [
     [1.05, -4.9, 0.5], [-1.05, -4.9, 0.5], [1.05, -6.1, 0.5], [-1.05, -6.1, 0.5],
   ],
@@ -113,7 +113,8 @@ export class Rig {
     this.truck.angularDamping = 0.2;
     // trailer body
     this.trailer = new CANNON.Body({ mass: TRAILER.mass, material: mats.rig, collisionFilterGroup: G.RIG, collisionFilterMask: mask, allowSleep: false });
-    this.trailer.addShape(new CANNON.Box(new CANNON.Vec3(1.3, 0.2, 6.3)), new CANNON.Vec3(0, 0, -1.0));
+    // thinner than the visual deck so a lowered bed doesn't scrape on bumps
+    this.trailer.addShape(new CANNON.Box(new CANNON.Vec3(1.3, 0.12, 6.3)), new CANNON.Vec3(0, 0.08, -1.0));
     this.trailer.addShape(new CANNON.Box(new CANNON.Vec3(1.15, 0.31, 1.65)), new CANNON.Vec3(0, 0.9, 6.6));
     const th = TRAILER.tank.half;
     this.tankShape = new CANNON.Box(new CANNON.Vec3(th[0], th[1], th[2]));
@@ -276,7 +277,7 @@ export class Rig {
       const w = this.trailerVeh.wheelInfos[k];
       this.trailerVeh.setBrake((c.handbrake ? brake : brake * 0.8) + this._flatDrag(w), k);
     }
-    if (hasFuel && Math.abs(c.throttle) > 0.01) st.fuel = Math.max(0, st.fuel - Math.abs(c.throttle) * dt * 0.085);
+    if (hasFuel && Math.abs(c.throttle) > 0.01) st.fuel = Math.max(0, st.fuel - Math.abs(c.throttle) * dt * 0.13);
     else if (hasFuel) st.fuel = Math.max(0, st.fuel - dt * 0.004);
     this.rpm = damp(this.rpm, hasFuel ? 0.18 + Math.abs(c.throttle) * 0.6 + Math.min(1, Math.abs(kmh) / 40) * 0.25 : 0, 4, dt);
 

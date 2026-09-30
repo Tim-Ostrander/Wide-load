@@ -52,8 +52,28 @@ const driveTo = async (idx, speed) => {
   await H.ev(() => window.__bot.stop());
   await page.waitForTimeout(300);
 };
+const STAGES = ['tree', 'lines', 'overpass', 'station', 'bridge', 'washout', 'town', 'ramp'];
+const START = process.env.START || 'tree';
+const from = STAGES.indexOf(START);
+const on = (name) => STAGES.indexOf(name) >= from;
 try {
   const P = await H.ev(() => window.__bot.P);
+  if (from > 0) {
+    // jump ahead: clear earlier obstacles and put the rig just before this stage
+    const where = { lines: P.lines - 40, overpass: P.overpass - 45, station: P.station - 30, bridge: P.bridge - 45, washout: P.washout - 40, town: P.town - 30, ramp: P.town + 40 }[START];
+    await H.ev(([where, from]) => {
+      const g = window.__wl.game;
+      if (from > 0) g.W.ob.tree = 1;
+      if (from > 1) g.W.ob.lines[1] = 1;
+      if (from > 4) g.W.ob.br[0] = 7;
+      if (from > 5) g.W.ob.wo = 15;
+      g.rig.placeOnRoad(where);
+      window.__bot.to(window.__bot.anchor('toolbox').pos);
+    }, [where, from]);
+    await page.waitForTimeout(500);
+    log('jumped to', START, await st());
+  }
+  if (on('tree')) {
   // 1. drive to the tree, then take the chainsaw from the toolbox
   await driveTo(P.tree - 16, 22);
   log('at tree', await st());
@@ -68,9 +88,11 @@ try {
   await page.waitForTimeout(400);
   log('tree', await H.ev(() => window.__wl.game.W.ob.tree));
   console.log(await snap('b_tree'));
-  // 3. power lines: stow chainsaw, take hot stick, hook at pole
   await H.ev(() => window.__bot.to(window.__bot.anchor('toolbox').pos));
   log('stow saw', JSON.stringify(await H.ev(() => window.__bot.use('stow'))));
+  }
+  if (on('lines')) {
+  // 3. power lines: stow chainsaw, take hot stick, hook at pole
   await driveTo(P.lines - 22, 22);
   log('at lines', await st());
   await H.ev(() => window.__bot.to(window.__bot.anchor('toolbox').pos));
@@ -84,6 +106,8 @@ try {
   log('lines', JSON.stringify(await H.ev(() => window.__wl.game.W.ob.lines)));
   await H.ev(() => window.__bot.to(window.__bot.anchor('toolbox').pos));
   log('stow stick', JSON.stringify(await H.ev(() => window.__bot.use('stow'))));
+  }
+  if (on('overpass')) {
   // 4. overpass: lower bed, creep under
   await driveTo(P.overpass - 30, 22);
   await H.ev(() => window.__wl.game.session.act('R', 'bed'));
@@ -92,6 +116,8 @@ try {
   log('after overpass', await st());
   console.log(await snap('b_overpass'));
   await H.ev(() => window.__wl.game.session.act('R', 'bed'));
+  }
+  if (on('station')) {
   // 5. station: fuel at pump
   await driveTo(P.station + 2, 18);
   log('at station', await st());
@@ -99,6 +125,8 @@ try {
   await page.waitForTimeout(300);
   log('pump cands', JSON.stringify(await H.ev(() => window.__bot.cands())));
   log('pump', JSON.stringify(await H.ev(() => window.__bot.use('pump'))));
+  }
+  if (on('bridge')) {
   // 6. bridge supports: 3 posts
   await driveTo(P.bridge - 30, 20);
   log('at bridge', await st());
@@ -121,6 +149,8 @@ try {
   await driveTo(P.bridge + 30, 16);
   log('after bridge', await st(), JSON.stringify(await H.ev(() => window.__wl.game.W.ob.br)));
   console.log(await snap('b_bridge'));
+  }
+  if (on('washout')) {
   // 7. washout planks
   await driveTo(P.washout - 24, 18);
   log('at washout', await st());
@@ -142,17 +172,22 @@ try {
   await driveTo(P.washout + 30, 12);
   log('after washout', await st());
   console.log(await snap('b_washout'));
+  }
+  if (on('town')) {
   // 8. switchbacks and town
   await driveTo(P.town, 14);
   log('at town', await st());
   console.log(await snap('b_town'));
-  const end = await H.ev(() => window.__wl.game.world.road.count - 24);
+  }
+  const end = await H.ev(() => window.__wl.game.world.road.count - 22);
   await driveTo(end, 12);
   log('at ramp', await st());
   const rel = await H.ev(() => {
     const g = window.__wl.game, b = window.__bot;
     b.to(b.anchor('tankGate').pos);
-    return { c: b.cands(), use: b.use('release') };
+    const tc = g.rig.toWorld('trailer', [0, 2, -0.2]);
+    const rz = g.structures.spots.release.p;
+    return { c: b.cands(), use: b.use('release'), dist: Math.hypot(tc.x - rz.x, tc.z - rz.z) };
   });
   log('release', JSON.stringify(rel));
   await page.waitForTimeout(6000);

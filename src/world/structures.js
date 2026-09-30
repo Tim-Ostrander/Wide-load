@@ -685,7 +685,7 @@ export class Structures {
     const end = r.count - 1;
     const f = frame(r, end - 16);
     this.spots.harbor = f;
-    this.spots.release = frame(r, end - 22);
+    this.spots.release = frame(r, end - 32);
     const mb = new ModelBuilder();
     // pier alongside the ramp
     const pier = f.at(-9, 0, 4);
