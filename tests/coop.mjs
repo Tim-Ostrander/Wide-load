@@ -1,12 +1,18 @@
 // Two players in one browser context over the fake room: host a job, join it,
 // hand the rig to the joiner, drive, and check both views agree.
 import { startServer, launch, openPage, shot } from './harness.mjs';
+import { startRelay } from './nostr-relay.mjs';
+// WEB=1: password co-op over real WebRTC through a local Nostr relay.
+// Otherwise: the claude.ai room API, faked over a BroadcastChannel.
+const WEB = !!process.env.WEB;
+const PASSWORD = process.env.CREW_PW || '';
+const relay = WEB ? startRelay(7777) : null;
 const srv = await startServer();
 const { browser, context } = await launch({ width: 640, height: 360 });
 const lat = Number(process.env.LAT || 60);
-const init = `window.__FAKE_LATENCY = ${lat}; window.__FAKE_JITTER = 20;`;
-const A = await openPage(context, { fakeRoom: true, init });
-const B = await openPage(context, { fakeRoom: true, init });
+const init = WEB ? `window.__WL_RELAYS = ['ws://localhost:7777'];` : `window.__FAKE_LATENCY = ${lat}; window.__FAKE_JITTER = 20;`;
+const A = await openPage(context, { fakeRoom: !WEB, init });
+const B = await openPage(context, { fakeRoom: !WEB, init });
 const ready = (p) => p.page.waitForFunction(() => window.__wl && window.__wl.startSolo, null, { timeout: 120000 });
 await ready(A);
 await ready(B);
@@ -25,6 +31,20 @@ try {
   await A.page.fill('#name', 'Hosty');
   await B.page.fill('#name', 'Joiner');
   await B.page.click('.hat:nth-child(3)');
+  if (WEB) {
+    for (const p of [A, B]) {
+      await p.page.fill('#crewpw', 'wrong-password');
+      await p.page.click('#pwbtn');
+    }
+    await A.page.waitForFunction(() => /match/.test(document.querySelector('#lobby-note').textContent), null, { timeout: 20000 });
+    log('wrong password note', await ev(A, () => document.querySelector('#lobby-note').textContent));
+    for (const p of [A, B]) {
+      await p.page.fill('#crewpw', PASSWORD);
+      await p.page.click('#pwbtn');
+    }
+    await A.page.waitForFunction(() => /Connected/.test(document.querySelector('#lobby-note').textContent), null, { timeout: 30000 });
+    log('A lobby note', await ev(A, () => document.querySelector('#lobby-note').textContent));
+  }
   await A.page.waitForTimeout(1500);
   await A.page.click('#btn-host');
   await A.page.waitForTimeout(2500);
@@ -89,3 +109,4 @@ console.log('--- A logs'); console.log(A.logs.filter((l) => !l.includes('toNonIn
 console.log('--- B logs'); console.log(B.logs.filter((l) => !l.includes('toNonIndexed')).slice(0, 20).join('\n'));
 await browser.close();
 srv.kill();
+relay?.close();

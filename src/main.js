@@ -4,6 +4,7 @@ import { Game } from './game.js';
 import { Hud } from './ui/hud.js';
 import { Audio } from './audio.js';
 import { SoloSession, RoomSession, PROTOCOL } from './net/session.js';
+import { checkPassword, connectMesh } from './net/mesh.js';
 import { HAT_COLORS, HAT_NAMES } from './player.js';
 
 const $ = (s) => document.querySelector(s);
@@ -234,18 +235,28 @@ function showEnd(W, pay) {
 async function connectLobby() {
   const note = $('#lobby-note');
   const hostBtn = $('#btn-host');
+  // On claude.ai the page's own room connects signed-in crews. Anywhere else
+  // (a static host like GitHub Pages or itch.io) crews meet with a password.
+  if (!window.claude?.use) return passwordLobby();
   let r = null;
   try {
-    r = window.claude?.use ? await Promise.race([window.claude.use('room'), new Promise((res) => setTimeout(() => res(null), 11000))]) : null;
+    r = await Promise.race([window.claude.use('room'), new Promise((res) => setTimeout(() => res(null), 11000))]);
   } catch {
     r = null;
   }
   if (!r) {
     hostBtn.disabled = true;
-    note.textContent = 'Co-op needs this page open on claude.ai while signed in. Solo play works anywhere.';
+    note.textContent = 'Co-op on claude.ai needs you to be signed in. Solo play works anywhere.';
     return;
   }
+  attachLobby(r);
+}
+
+function attachLobby(r) {
+  const note = $('#lobby-note');
+  const hostBtn = $('#btn-host');
   room = r;
+  hostBtn.disabled = false;
   note.textContent = 'No open jobs yet. Host one, then ask your crew to open this page.';
   room.onPeers(() => renderLobby(), (e) => {
     note.textContent = e?.code === 'not_granted' ? 'Co-op is not available for your account on this page. Solo play still works.' : 'Lost the connection to the lobby. Solo play still works.';
@@ -255,6 +266,54 @@ async function connectLobby() {
     if (!ok) note.textContent = 'Reconnecting to the lobby…';
     else renderLobby();
   });
+}
+
+function passwordLobby() {
+  const form = $('#pwform');
+  const input = $('#crewpw');
+  const btn = $('#pwbtn');
+  const note = $('#lobby-note');
+  const hostBtn = $('#btn-host');
+  form.hidden = false;
+  hostBtn.disabled = true;
+  $('#host-sub').textContent = 'Up to 4 crew. Everyone needs the crew password.';
+  note.textContent = 'Enter the crew password to host or join a job. Solo play needs no password.';
+  const connect = async (pw, auto) => {
+    btn.disabled = true;
+    note.textContent = 'Checking the password…';
+    let ok = false;
+    try {
+      ok = await checkPassword(pw);
+    } catch {
+      ok = false;
+    }
+    if (!ok) {
+      btn.disabled = false;
+      note.textContent = auto ? 'Enter the crew password to host or join a job.' : "That password doesn't match. Check with whoever shared the game.";
+      return;
+    }
+    store.set('crewpw', pw);
+    note.textContent = 'Connecting to other crews…';
+    try {
+      const r = await connectMesh(pw);
+      form.hidden = true;
+      attachLobby(r);
+      note.textContent = 'Connected. Host a job, or wait here for a crew to appear.';
+    } catch (e) {
+      console.error(e);
+      btn.disabled = false;
+      note.textContent = 'Could not reach the matchmaking relays. Check your connection and try again.';
+    }
+  };
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    connect(input.value, false);
+  });
+  const saved = store.get('crewpw', '');
+  if (saved) {
+    input.value = saved;
+    connect(saved, true);
+  }
 }
 
 function renderLobby() {

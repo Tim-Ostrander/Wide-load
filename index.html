@@ -76,6 +76,13 @@
   #lobby-list .who { min-width: 0; overflow-wrap: anywhere; }
   #lobby-list .who b { display: block; }
   #lobby-list .who span { color: var(--muted); font-size: 13px; }
+  #pwform { display: grid; gap: 8px; }
+  #pwform[hidden] { display: none; }
+  #pwform label { font: 700 12px/1 var(--ui); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+  #crewpw { flex: 1 1 160px; min-width: 0; background: var(--asphalt-2); color: var(--ink); border: 2px solid #4b4f47; border-radius: 6px; padding: 8px 10px; font: 600 15px var(--ui); }
+  #crewpw:focus { border-color: var(--hivis); outline: none; }
+  #pwbtn { background: var(--hivis); color: var(--hivis-ink); border: 0; border-radius: 5px; padding: 8px 14px; font-weight: 800; cursor: pointer; }
+  #pwbtn:disabled { opacity: 0.6; cursor: wait; }
   #lobby-list button { background: var(--hivis); color: var(--hivis-ink); border: 0; border-radius: 5px; padding: 7px 12px; font-weight: 800; cursor: pointer; flex: none; }
   .note { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
   details.controls { background: var(--panel); border-radius: 8px; padding: 10px 14px; }
@@ -220,9 +227,16 @@
     </div>
     <nav class="signs" aria-label="Start">
       <button class="sign" id="btn-solo"><span>Start the job solo<small>You drive, you haul, you fix.</small></span><span class="arrow">→</span></button>
-      <button class="sign" id="btn-host"><span>Host a co-op job<small>Up to 4 crew. Friends join from this page.</small></span><span class="arrow">→</span></button>
+      <button class="sign" id="btn-host"><span>Host a co-op job<small id="host-sub">Up to 4 crew. Friends join from this page.</small></span><span class="arrow">→</span></button>
       <div id="lobby">
         <h3>Open co-op jobs</h3>
+        <form id="pwform" hidden autocomplete="off">
+          <label for="crewpw">Crew password</label>
+          <div class="crew-row">
+            <input id="crewpw" type="password" autocomplete="new-password" spellcheck="false" placeholder="Ask whoever shared the game">
+            <button type="submit" id="pwbtn">Connect</button>
+          </div>
+        </form>
         <ul id="lobby-list"></ul>
         <p class="note" id="lobby-note">Looking for crews…</p>
       </div>
