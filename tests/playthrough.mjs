@@ -39,6 +39,17 @@ await page.evaluate(() => {
       window.__startAutopilot({ speed, stopAt, fast: g.simSpeed });
       g.simSpeed = window.__FAST || 6; g.maxSteps = 60;
     },
+    // ratchet every strap back to full, the way a crew does at a stop
+    tighten() {
+      const out = [];
+      for (let k = 0; k < 4; k++) {
+        const a = this.anchor('strap', { k });
+        if (!a) continue;
+        this.to(a.pos.clone().setY(a.pos.y - 0.4));
+        out.push(this.use('strap-' + k).ok);
+      }
+      return { ok: out, straps: g.rig.state.straps.map(Math.round) };
+    },
     stop() { g.autopilot = null; g.rig.controls.throttle = 0; g.rig.controls.steer = 0; g.rig.controls.handbrake = true; },
     at() { const q = r.nearest(g.rig.truck.position.x, g.rig.truck.position.z, 40); return q.i; },
     st() { const s = g.rig.state; return { i: this.at(), kmh: Math.round(g.rig.speed * 3.6), h: Math.round(s.health), w: Math.round(s.water), f: Math.round(s.fuel), straps: s.straps.map(Math.round), tires: s.tires.filter((t) => t <= 0).length, fines: g.W.fines, ph: g.W.ph, tank: s.tank }; },
@@ -125,6 +136,24 @@ try {
   await page.waitForTimeout(300);
   log('pump cands', JSON.stringify(await H.ev(() => window.__bot.cands())));
   log('pump', JSON.stringify(await H.ev(() => window.__bot.use('pump'))));
+  // smoke break: empty the pack, restock at the machine, light one for the road
+  log('smokes', JSON.stringify(await H.ev(() => {
+    const g = window.__wl.game, p = g.player, b = window.__bot;
+    const out = { start: p.cigs };
+    while (p.cigs > 0) {
+      g._smoke();
+      if (p.smoking) g._smoke();
+    }
+    g._smoke();
+    out.emptyLit = p.smoking;
+    b.to(g.structures.spots.station.at(-23.2, 1.0, -3.2));
+    out.cand = b.cands().e;
+    out.buy = b.use('smokes');
+    out.after = p.cigs;
+    g._smoke();
+    out.lit = p.smoking;
+    return out;
+  })));
   }
   if (on('bridge')) {
   // 6. bridge supports: 3 posts
@@ -172,6 +201,7 @@ try {
   await H.ev(() => { window.__apLog.length = 0; });
   await driveTo(P.washout + 30, 12);
   log('after washout', await st());
+  log('tighten', JSON.stringify(await H.ev(() => window.__bot.tighten())));
   if (process.env.TRACE) log('trace', JSON.stringify(await H.ev(() => window.__apLog.map((x) => [x.t, x.i, x.kmh, x.sp, x.st.s]))));
   console.log(await snap('b_washout'));
   }
@@ -179,6 +209,7 @@ try {
   // 8. switchbacks and town
   await driveTo(P.town, 14);
   log('at town', await st());
+  if (process.env.TRACE) log('trace', JSON.stringify(await H.ev(() => window.__apLog.map((x) => [x.t, x.i, x.kmh, x.y, x.roll, x.sp, x.st.s, x.st.h]))));
   console.log(await snap('b_town'));
   }
   const end = await H.ev(() => window.__wl.game.world.road.count - 22);

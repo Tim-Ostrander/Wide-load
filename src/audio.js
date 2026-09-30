@@ -334,6 +334,14 @@ export class Audio {
         this._burst({ freq: 2200, type: 'bandpass', q: 2, dur: 0.18, peak: 0.2 });
         this._tone({ freq: 1000, dur: 0.08, peak: 0.08, delay: 0.18 });
         break;
+      case 'lighter':
+        // flint strike, then the flame
+        this._burst({ freq: 5200, type: 'highpass', dur: 0.04, peak: 0.35 });
+        setTimeout(() => this._burst({ freq: 700, type: 'bandpass', q: 0.7, dur: 0.5, peak: 0.12 }), 80);
+        break;
+      case 'flick':
+        this._tone({ freq: 1400, to: 900, type: 'triangle', dur: 0.05, peak: 0.08 });
+        break;
       case 'done':
         this._tone({ freq: 660, dur: 0.1, peak: 0.15 });
         this._tone({ freq: 990, dur: 0.2, peak: 0.12, delay: 0.08 });

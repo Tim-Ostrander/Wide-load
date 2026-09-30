@@ -1,7 +1,7 @@
 // Geometry helpers: low-poly models are assembled from primitives with baked
 // vertex colors and merged into one BufferGeometry per model.
 import { THREE } from '../lib.js';
-import { toonMaterial } from '../render/toon.js';
+import { lowPolyMaterial } from '../render/lowpoly.js';
 
 const _m = new THREE.Matrix4();
 const _q = new THREE.Quaternion();
@@ -93,15 +93,11 @@ export class ModelBuilder {
   }
 }
 
-let _flatMat, _smoothMat;
-/** The shared cel-shaded material for vertex-colored models. */
+let _flatMat;
+/** The shared flat-shaded material for vertex-colored models. */
 export function flatMaterial() {
-  if (!_flatMat) _flatMat = toonMaterial({ vertexColors: true });
+  if (!_flatMat) _flatMat = lowPolyMaterial({ vertexColors: true });
   return _flatMat;
-}
-export function smoothMaterial() {
-  if (!_smoothMat) _smoothMat = toonMaterial({ vertexColors: true });
-  return _smoothMat;
 }
 
 /** Canvas texture with text, for signs and banners. */

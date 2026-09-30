@@ -1,7 +1,7 @@
 // Sky, sun, fog and the sea.
 import { THREE } from '../lib.js';
 import { N, HALF, SIZE } from './terrain.js';
-import { toonMaterial } from '../render/toon.js';
+import { lowPolyMaterial } from '../render/lowpoly.js';
 import { mulberry32 } from '../util/rng.js';
 
 export const SUN_DIR = new THREE.Vector3(-0.45, 0.62, 0.35).normalize();
@@ -52,7 +52,7 @@ export function createSky() {
 export function createClouds() {
   const rnd = mulberry32(99);
   const group = new THREE.Group();
-  const mat = toonMaterial({ color: 0xffffff, emissive: 0x9fb8cc, emissiveIntensity: 0.35 });
+  const mat = lowPolyMaterial({ color: 0xffffff, emissive: 0x9fb8cc, emissiveIntensity: 0.35 });
   const puff = new THREE.IcosahedronGeometry(1, 2);
   for (let k = 0; k < 34; k++) {
     const c = new THREE.Group();
@@ -186,5 +186,5 @@ export function createSea(terrain) {
 }
 
 export function createCreekMaterial() {
-  return toonMaterial({ color: 0x4fd0dc, transparent: true, opacity: 0.88 });
+  return lowPolyMaterial({ color: 0x4fd0dc, transparent: true, opacity: 0.88 });
 }

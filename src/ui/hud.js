@@ -29,6 +29,7 @@ export class Hud {
       bed: $('#chip-bed'),
       tiller: $('#chip-tiller'),
       fines: $('#chip-fines'),
+      smokes: $('#chip-smokes'),
       tires: $('#tires'),
       prompt: $('#prompt'),
       seathint: $('#seathint'),
@@ -172,6 +173,9 @@ export class Hud {
     this._set('til', el.tiller, 'textContent', r.tillerAuto ? 'TRAILER AUTO' : 'TRAILER MANUAL');
     this._set('fin', el.fines, 'textContent', `FINES $${m.fines.toLocaleString()}`);
     this._set('finc', el.fines, 'className', 'chip' + (m.fines > 0 ? ' warn' : ''));
+    const sm = m.smokes;
+    this._set('smk', el.smokes, 'textContent', sm.t > 0 ? `SMOKING ${sm.t}s · ${sm.n} LEFT` : `SMOKES ${sm.n}`);
+    this._set('smkc', el.smokes, 'className', 'chip' + (sm.t > 0 ? ' on' : sm.n === 0 ? ' warn' : ''));
     r.tires.forEach((v, k) => this._set('t' + k, this.tireEls[k], 'className', v <= 0 ? 'flat' : v < 60 ? 'hurt' : ''));
     // crew list
     const crewKey = m.players.map((p) => `${p.n}|${p.c}|${p.seat}|${p.held}|${p.host}`).join(';');

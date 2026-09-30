@@ -386,6 +386,18 @@ export class Structures {
     mb.box(0.72, 0.4, 0.92, 0xf3efe2, [pump.x, y0 + 1.6, pump.z], [0, f.yaw, 0]);
     this._box([1.6, 2, 1.4], new THREE.Vector3(pump.x, y0 + 1, pump.z), f.yaw);
     this.spots.pump = pump.clone().setY(y0 + 1.2);
+    // cigarette machine by the shop door, facing the road
+    const vend = f.at(-24.6, 0, -3.2);
+    mb.box(0.8, 1.9, 1.1, 0xb8322a, [vend.x, y0 + 0.95, vend.z], [0, f.yaw, 0]);
+    mb.box(0.82, 0.36, 1.12, 0xf3efe2, [vend.x, y0 + 1.66, vend.z], [0, f.yaw, 0]);
+    const tray = f.at(-24.6 + 0.3, 0, -3.2);
+    mb.box(0.24, 0.2, 0.8, 0x2b2622, [tray.x, y0 + 0.45, tray.z], [0, f.yaw, 0]);
+    [0xf3efe2, 0xe6c24a, 0x6fae4f, 0x4b87c9].forEach((c, k) => {
+      const b = f.at(-24.6 + 0.4, 0, -3.2 - 0.36 + k * 0.24);
+      mb.box(0.04, 0.26, 0.17, c, [b.x, y0 + 1.2, b.z], [0, f.yaw, 0]);
+    });
+    this._box([0.8, 1.9, 1.1], new THREE.Vector3(vend.x, y0 + 0.95, vend.z), f.yaw);
+    this.spots.smokes = vend.clone().setY(y0 + 1.0);
     // water tower: spout reaches over the road edge
     const tw = f.at(-12, 0, 26);
     for (const [ox, oz] of [[-2, -2], [2, -2], [-2, 2], [2, 2]]) mb.box(0.3, 12, 0.3, WOOD_DARK, [tw.x + ox, y0 + 6, tw.z + oz]);

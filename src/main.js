@@ -5,7 +5,7 @@ import { Hud } from './ui/hud.js';
 import { Audio } from './audio.js';
 import { SoloSession, RoomSession, PROTOCOL } from './net/session.js';
 import { checkPassword, connectMesh } from './net/mesh.js';
-import { HAT_COLORS, HAT_NAMES } from './player.js';
+import { HAT_COLORS, HAT_NAMES, HATS, GLASSES, SKIN, lookOf } from './player.js';
 
 const $ = (s) => document.querySelector(s);
 const store = {
@@ -26,7 +26,7 @@ const store = {
   },
 };
 
-const profile = { name: store.get('name', 'Driver'), color: store.get('color', 0) };
+const profile = { name: store.get('name', 'Driver'), color: store.get('color', 0), look: lookOf(store.get('look', {})) };
 let game, hud, audio, room = null, myPeer = null;
 let current = null; // current co-op session info
 
@@ -44,15 +44,51 @@ function setupProfile() {
     b.className = 'hat';
     b.type = 'button';
     b.style.background = '#' + c.toString(16).padStart(6, '0');
-    b.setAttribute('aria-label', HAT_NAMES[k] + ' hard hat');
+    b.setAttribute('aria-label', HAT_NAMES[k] + ' crew color');
     b.setAttribute('aria-pressed', String(k === profile.color));
     b.addEventListener('click', () => {
       profile.color = k;
       store.set('color', k);
       for (const x of hats.children) x.setAttribute('aria-pressed', String(x === b));
+      previewLook();
     });
     hats.appendChild(b);
   });
+  // hats and shades cycle on click (shift-click goes back)
+  const picker = (btn, label, list, key) => {
+    const show = () => ($(label).textContent = list[profile.look[key]][1]);
+    show();
+    $(btn).addEventListener('click', (e) => {
+      const n = list.length;
+      profile.look[key] = (profile.look[key] + (e.shiftKey ? n - 1 : 1)) % n;
+      store.set('look', profile.look);
+      show();
+      previewLook();
+    });
+  };
+  picker('#pick-hat', '#hat-label', HATS, 'hat');
+  picker('#pick-glasses', '#glasses-label', GLASSES, 'glasses');
+  const skin = $('#pick-skin');
+  const showSkin = () => {
+    skin.style.background = '#' + SKIN[profile.look.skin].toString(16).padStart(6, '0');
+    skin.setAttribute('aria-label', `Skin tone ${profile.look.skin + 1} of ${SKIN.length}`);
+  };
+  showSkin();
+  skin.addEventListener('click', (e) => {
+    const n = SKIN.length;
+    profile.look.skin = (profile.look.skin + (e.shiftKey ? n - 1 : 1)) % n;
+    store.set('look', profile.look);
+    showSkin();
+    previewLook();
+  });
+}
+
+/** The title screen shows your crew member by the truck: keep it in sync with the picks. */
+function previewLook() {
+  if (!game || game.mode !== 'intro') return;
+  game.opts.color = profile.color;
+  game.opts.look = { ...profile.look };
+  game.player.setLook(profile.color, profile.name, profile.look);
 }
 
 async function boot() {
@@ -68,7 +104,7 @@ async function boot() {
   audio = new Audio();
   $('#loading-msg').textContent = 'Loading Dolores…';
   await new Promise((r) => setTimeout(r, 10));
-  game = new Game($('#view'), { session: new SoloSession(profile), hud, audio, name: profile.name, color: profile.color, mode: 'intro' });
+  game = new Game($('#view'), { session: new SoloSession(profile), hud, audio, name: profile.name, color: profile.color, look: { ...profile.look }, mode: 'intro' });
   hud.onEnd = showEnd;
   hud.onSay = (text) => game.sayText(text);
   hud.onChatClosed = () => {
@@ -172,7 +208,8 @@ function startSolo() {
   if (!game.session.solo) game.setSession(new SoloSession(profile), profile);
   game.opts.name = profile.name;
   game.opts.color = profile.color;
-  game.player.setLook(profile.color, profile.name);
+  game.opts.look = { ...profile.look };
+  game.player.setLook(profile.color, profile.name, profile.look);
   game.resetJob(true);
   enterPlay();
   hud.toast('Walk to the cab and press F to drive. The yellow toolbox behind the cab has your gear.');
@@ -374,6 +411,7 @@ async function hostJob() {
     current = { session, code, host: true };
     game.opts.name = profile.name;
     game.opts.color = profile.color;
+    game.opts.look = { ...profile.look };
     game.setSession(session, profile);
     advertise();
     enterPlay();
@@ -407,6 +445,7 @@ async function joinJob(hostPeer, code) {
     current = { session, code, host: false };
     game.opts.name = profile.name;
     game.opts.color = profile.color;
+    game.opts.look = { ...profile.look };
     game.setSession(session, profile);
     enterPlay();
     hud.toast('You joined the crew. Press T to say hi.');

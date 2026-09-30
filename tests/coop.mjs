@@ -31,6 +31,8 @@ try {
   await A.page.fill('#name', 'Hosty');
   await B.page.fill('#name', 'Joiner');
   await B.page.click('.hat:nth-child(3)');
+  await B.page.click('#pick-hat');
+  await B.page.click('#pick-hat'); // bucket hat
   if (WEB) {
     for (const p of [A, B]) {
       await p.page.fill('#crewpw', 'wrong-password');
@@ -57,6 +59,11 @@ try {
   await A.page.waitForTimeout(2000);
   log('A sees', await ev(A, () => ({ remotes: window.__wl.game.remotes.size, size: window.__wl.game.session.lastSize })));
   log('B sees', await ev(B, () => ({ remotes: window.__wl.game.remotes.size, size: window.__wl.game.session.lastSize, owner: window.__wl.game.rig.owner })));
+  // the host lights up; the joiner sees the smoke and both see each other's looks
+  await A.page.keyboard.press('c');
+  await B.page.waitForFunction(() => [...window.__wl.game.remotes.values()].some((r) => r.avatar.smoking), null, { timeout: 8000 }).catch(() => log('B never saw A smoking'));
+  log('B sees', await ev(B, () => JSON.stringify([...window.__wl.game.remotes.values()].map((r) => ({ look: r.avatar.look, smoking: r.avatar.smoking })))));
+  log('A sees', await ev(A, () => JSON.stringify([...window.__wl.game.remotes.values()].map((r) => ({ look: r.avatar.look, smoking: r.avatar.smoking })))), 'A cigs', await ev(A, () => window.__wl.game.player.cigs));
   console.log(await shotR(A, 'c_A1'));
   console.log(await shotR(B, 'c_B1'));
   // B takes the driver's seat
